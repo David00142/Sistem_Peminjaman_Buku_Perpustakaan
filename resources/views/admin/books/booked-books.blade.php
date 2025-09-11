@@ -28,35 +28,83 @@
                 <thead class="bg-gray-100">
                     <tr>
                         <th class="py-3 px-6 text-left">Judul Buku</th>
-                        <th class="py-3 px-6 text-left">Penulis</th>
-                        <th class="py-3 px-6 text-left">Kategori</th>
-                        <th class="py-3 px-6 text-left">Jumlah Dipesan</th>
-                        <th class="py-3 px-6 text-left">Stok Tersedia</th>
+                        <th class="py-3 px-6 text-left">Pemesan</th>
+                        <th class="py-3 px-6 text-left">Durasi Diminta</th>
+                        <th class="py-3 px-6 text-left">Tanggal Pemesanan</th>
+                        <th class="py-3 px-6 text-left">Batas Pengambilan</th>
                         <th class="py-3 px-6 text-left">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    @foreach($bookedBooks as $book)
+                    @foreach($bookedBooks as $borrow)
                     <tr class="hover:bg-gray-50">
-                        <td class="py-4 px-6">{{ $book->title }}</td>
-                        <td class="py-4 px-6">{{ $book->author }}</td>
-                        <td class="py-4 px-6">{{ $book->category }}</td>
-                        <td class="py-4 px-6">{{ $book->booked }}</td>
-                        <td class="py-4 px-6">{{ $book->quantity - $book->borrowed - $book->booked }}</td>
                         <td class="py-4 px-6">
-                            <div class="flex space-x-2">
-                                <form action="{{ route('admin.books.confirm-borrow', $book->id) }}" method="POST">
+                            <div class="font-medium">{{ $borrow->book->title }}</div>
+                            <div class="text-sm text-gray-500">Oleh: {{ $borrow->book->author }}</div>
+                            <div class="text-sm text-gray-500">Kategori: {{ $borrow->book->category }}</div>
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="font-medium">{{ $borrow->user->name }}</div>
+                            <div class="text-sm text-gray-500">{{ $borrow->user->email }}</div>
+                            @if($borrow->user->kelas)
+                            <div class="text-sm text-gray-500">Kelas: {{ $borrow->user->kelas }}</div>
+                            @endif
+                        </td>
+                        <td class="py-4 px-6">
+                            @if($borrow->requested_days)
+                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                                    {{ $borrow->requested_days }} hari
+                                </span>
+                            @else
+                                <span class="text-gray-500 text-sm">Tidak ditentukan</span>
+                            @endif
+                        </td>
+                        <td class="py-4 px-6">
+                            {{ $borrow->created_at->format('d M Y H:i') }}
+                        </td>
+                        <td class="py-4 px-6">
+                            @php
+                                $expiryDate = $borrow->created_at->addDays(2);
+                                $isExpired = now()->greaterThan($expiryDate);
+                            @endphp
+                            <span class="{{ $isExpired ? 'text-red-600 font-medium' : 'text-gray-700' }}">
+                                {{ $expiryDate->format('d M Y H:i') }}
+                            </span>
+                            @if($isExpired)
+                            <div class="text-xs text-red-500 mt-1">Telah melewati batas</div>
+                            @endif
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="flex flex-col space-y-2"> <!-- Kembalikan ke flex-col untuk tampilan lebih rapi -->
+                                <!-- Form Konfirmasi Peminjaman -->
+                                <form action="{{ route('admin.books.confirm-borrow', $borrow->id) }}" method="POST" class="flex items-center space-x-2">
                                     @csrf
-                                    <input type="hidden" name="user_id" value="1"> <!-- Ganti dengan user_id yang sesuai -->
-                                    <input type="number" name="duration_days" value="7" min="1" max="30" class="w-16 px-2 py-1 border rounded">
-                                    <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
+                                    <select name="duration_days" class="w-20 px-2 py-1 border rounded text-sm" required>
+                                        <!-- Tampilkan opsi default sesuai yang diminta user -->
+                                        @if($borrow->requested_days)
+                                        <option value="{{ $borrow->requested_days }}" selected>
+                                            {{ $borrow->requested_days }} hari
+                                        </option>
+                                        @else
+                                        <option value="" selected disabled>Pilih durasi</option>
+                                        @endif
+                                        <option value="3">3 hari</option>
+                                        <option value="7">7 hari</option>
+                                        <option value="14">14 hari</option>
+                                        <option value="21">21 hari</option>
+                                        <option value="30">30 hari</option>
+                                    </select>
+                                    <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm whitespace-nowrap">
                                         Konfirmasi
                                     </button>
                                 </form>
-                                <form action="{{ route('admin.books.cancel-booking', $book->id) }}" method="POST">
+                                
+                                <!-- Form Batalkan Pemesanan -->
+                                <form action="{{ route('admin.books.cancel-booking', $borrow->id) }}" method="POST">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
+                                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm whitespace-nowrap w-full text-center" 
+                                            onclick="return confirm('Apakah Anda yakin ingin membatalkan pemesanan ini?')">
                                         Batalkan
                                     </button>
                                 </form>
@@ -67,6 +115,32 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination -->
+        @if($bookedBooks->hasPages())
+        <div class="mt-6">
+            {{ $bookedBooks->links() }}
+        </div>
+        @endif
     @endif
 </div>
+
+<style>
+/* Tambahkan style untuk memastikan tampilan konsisten */
+.flex-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.whitespace-nowrap {
+    white-space: nowrap;
+}
+
+/* Pastikan form tidak break line */
+form {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0;
+}
+</style>
 @endsection

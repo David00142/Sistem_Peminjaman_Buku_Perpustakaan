@@ -3,8 +3,8 @@
 @section('title', 'Buku yang Dipinjam')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
-    <h2 class="text-3xl font-bold text-center mb-8">Buku yang Dipinjam</h2>
+<div class="container mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">Daftar Buku yang Sedang Dipinjam</h1>
 
     @if(session('success'))
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded">
@@ -28,26 +28,36 @@
                 <thead class="bg-gray-100">
                     <tr>
                         <th class="py-3 px-6 text-left">Judul Buku</th>
-                        <th class="py-3 px-6 text-left">Penulis</th>
-                        <th class="py-3 px-6 text-left">Kategori</th>
-                        <th class="py-3 px-6 text-left">Jumlah Dipinjam</th>
-                        <th class="py-3 px-6 text-left">Stok Tersedia</th>
+                        <th class="py-3 px-6 text-left">Peminjam</th>
+                        <th class="py-3 px-6 text-left">Tanggal Pinjam</th>
+                        <th class="py-3 px-6 text-left">Batas Kembali</th>
+                        <th class="py-3 px-6 text-left">Status</th>
                         <th class="py-3 px-6 text-left">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @foreach($borrowedBooks as $book)
-                    <tr class="hover:bg-gray-50">
-                        <td class="py-4 px-6">{{ $book->title }}</td>
-                        <td class="py-4 px-6">{{ $book->author }}</td>
-                        <td class="py-4 px-6">{{ $book->category }}</td>
-                        <td class="py-4 px-6">{{ $book->borrowed }}</td>
-                        <td class="py-4 px-6">{{ $book->quantity - $book->borrowed - $book->booked }}</td>
+                <tbody>
+                    @foreach($borrowedBooks as $borrow)
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-4 px-6">{{ $borrow->book->title }}</td>
+                        <td class="py-4 px-6">{{ $borrow->user->name }}</td>
+                        <td class="py-4 px-6">{{ \Carbon\Carbon::parse($borrow->borrow_date)->format('d M Y') }}</td>
+                        <td class="py-4 px-6">{{ \Carbon\Carbon::parse($borrow->due_date)->format('d M Y') }}</td>
                         <td class="py-4 px-6">
-                            <form action="{{ route('admin.books.return-book', $book->id) }}" method="POST">
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                                Dipinjam
+                            </span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <form action="{{ route('admin.books.return-book', $borrow->id) }}" method="POST" class="inline">
                                 @csrf
-                                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
                                     Kembalikan
+                                </button>
+                            </form>
+                            <form action="{{ route('admin.books.extend-borrow', $borrow->id) }}" method="POST" class="inline ml-2">
+                                @csrf
+                                <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm">
+                                    Perpanjang
                                 </button>
                             </form>
                         </td>
@@ -56,6 +66,7 @@
                 </tbody>
             </table>
         </div>
+        
     @endif
 </div>
 @endsection

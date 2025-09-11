@@ -89,7 +89,6 @@
                         </svg>
                     </button>
 
-
                     <!-- Dropdown Menu -->
                     <div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50 hidden">
                         @if(Auth::check())
@@ -116,37 +115,43 @@
             </div>
         </div>
 
-<!-- Navigation Bar -->
-<nav class="bg-blue-600 shadow-md">
-    <div class="container mx-auto px-4">
-        <div class="flex justify-center space-x-12 py-3">
-            <a href="{{ route('home') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                <span>Home</span>
-            </a>
-            <a href="{{ route('available') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
-                <span>Available Books</span>
-            </a>
-            <a href="#" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-                <span>Borrowed</span>
-            </a>
-            <a href="#" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Penalty</span>
-            </a>
-        </div>
-    </div>
-</nav>
+        <!-- Navigation Bar -->
+        <nav class="bg-blue-600 shadow-md">
+            <div class="container mx-auto px-4">
+                <div class="flex justify-center space-x-12 py-3">
+                    <a href="{{ route('home') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        <span>Home</span>
+                    </a>
+                    <a href="{{ route('available') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        </svg>
+                        <span>Available Books</span>
+                    </a>
+                    <a href="{{ route('booked') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <span>Booked</span>
+                    </a>
+                    <a href="{{ route('borrowed-books') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <span>Borrowed</span>
+                    </a>
+                    <a href="{{ route('penalty') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Penalty</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
     </header>
 
     <!-- Main Content -->
@@ -171,11 +176,61 @@
 
     @stack('scripts')
 
+    <!-- Tambahkan SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
         // JavaScript to toggle dropdown visibility on click
         document.getElementById('profileButton').addEventListener('click', function() {
             const dropdownMenu = document.getElementById('dropdownMenu');
             dropdownMenu.classList.toggle('hidden'); // Toggle the dropdown menu visibility
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const profileButton = document.getElementById('profileButton');
+            const dropdownMenu = document.getElementById('dropdownMenu');
+            
+            if (!profileButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+
+        // SweetAlert notifications
+        document.addEventListener('DOMContentLoaded', function() {
+            // SweetAlert for success
+            @if(session('alert_type') && session('alert_title'))
+                Swal.fire({
+                    icon: '{{ session('alert_type') }}',
+                    title: '{{ session('alert_title') }}',
+                    text: '{{ session('alert_message', '') }}',
+                    confirmButtonColor: '#3B82F6',
+                    confirmButtonText: 'OK',
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            @endif
+
+            // Traditional error messages
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: '{{ session('error') }}',
+                    confirmButtonColor: '#EF4444',
+                    confirmButtonText: 'OK'
+                });
+            @endif
+
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: '{{ session('success') }}',
+                    confirmButtonColor: '#10B981',
+                    confirmButtonText: 'OK'
+                });
+            @endif
         });
     </script>
 </body>

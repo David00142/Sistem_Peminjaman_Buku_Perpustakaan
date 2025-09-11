@@ -101,26 +101,27 @@
         </div>
     </header>
 
-    <!-- Navigation Bar -->
-    <nav class="bg-blue-600 shadow-md">
-        <div class="container mx-auto px-4">
-            <div class="flex justify-center space-x-12 py-3">
-                <a href="{{ route('admin.index') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
-                    <span>Data User</span>
-                </a>
-                <a href="{{ route('admin.books.create') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
-                    <span>Add Book</span>
-                </a>
-                <a href="{{ route('admin.books.booked') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
-                    <span>Booked</span>
-                </a>
-                <a href="#" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
-                    <span>Penalty</span>
-                </a>
-            </div>
+<nav class="bg-blue-600 shadow-md">
+    <div class="container mx-auto px-4">
+        <div class="flex justify-center space-x-12 py-3">
+            <a href="{{ route('admin.index') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                <span>Data User</span>
+            </a>
+            <a href="{{ route('admin.books.create') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                <span>Add Book</span>
+            </a>
+            <a href="{{ route('admin.books.booked') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                <span>Booked</span>
+            </a>
+            <a href="{{ route('admin.books.borrowed') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                <span>Borrowed</span>
+            </a>
+            <a href="{{ route('admin.penalty') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                <span>Penalty</span>
+            </a>
         </div>
-    </nav>
-
+    </div>
+</nav>
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-6 flex-grow">
         @yield('content')

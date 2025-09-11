@@ -52,12 +52,48 @@
             </div>
 
             @if($book->quantity > ($book->borrowed + $book->booked))
-                <form action="{{ route('book.booking', $book->id) }}" method="POST">
+                <form action="{{ route('book.booking', $book->id) }}" method="POST" id="bookingForm">
                     @csrf
+                    
+                    <!-- Pilihan Durasi Peminjaman -->
+                    <div class="mb-4">
+                        <label for="duration" class="block text-sm font-medium text-gray-700 mb-2">
+                            📆 Durasi Peminjaman
+                        </label>
+                        <select name="duration" id="duration" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Pilih durasi...</option>
+                            <option value="3">3 Hari</option>
+                            <option value="5">5 Hari</option>
+                            <option value="7">7 Hari (1 Minggu)</option>
+                            <option value="14">14 Hari (2 Minggu)</option>
+                            <option value="21">21 Hari (3 Minggu)</option>
+                            <option value="30">30 Hari (1 Bulan)</option>
+                        </select>
+                        <p class="text-sm text-gray-500 mt-1">Maksimal peminjaman 30 hari</p>
+                    </div>
+
+                    <!-- Informasi Tanggal -->
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    <strong>Perkiraan Jadwal:</strong><br>
+                                    • Tanggal Pinjam: <span id="borrowDate">{{ now()->format('d M Y') }}</span><br>
+                                    • Tanggal Kembali: <span id="returnDate">-</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-200">
                         📚 Booking Buku Ini
                     </button>
-                    <p class="text-sm text-gray-500 mt-2 text-center">Buku akan dipesan untuk Anda selama 2 hari</p>
+                    <p class="text-sm text-gray-500 mt-2 text-center">Buku akan dipesan untuk Anda</p>
                 </form>
             @else
                 <button disabled class="w-full bg-gray-400 text-white font-bold py-3 px-4 rounded-lg cursor-not-allowed">
@@ -77,4 +113,54 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const durationSelect = document.getElementById('duration');
+    const returnDateSpan = document.getElementById('returnDate');
+    const borrowDateSpan = document.getElementById('borrowDate');
+    
+    // Set tanggal pinjam hari ini
+    const today = new Date();
+    borrowDateSpan.textContent = formatDate(today);
+    
+    durationSelect.addEventListener('change', function() {
+        const duration = parseInt(this.value);
+        if (duration) {
+            const returnDate = new Date(today);
+            returnDate.setDate(today.getDate() + duration);
+            returnDateSpan.textContent = formatDate(returnDate);
+        } else {
+            returnDateSpan.textContent = '-';
+        }
+    });
+    
+    function formatDate(date) {
+        const options = { day: 'numeric', month: 'short', year: 'numeric' };
+        return date.toLocaleDateString('id-ID', options);
+    }
+    
+    // Validasi form
+    document.getElementById('bookingForm').addEventListener('submit', function(e) {
+        const duration = durationSelect.value;
+        if (!duration) {
+            e.preventDefault();
+            alert('Silakan pilih durasi peminjaman terlebih dahulu.');
+            durationSelect.focus();
+        }
+    });
+});
+</script>
+
+<style>
+select:required:invalid {
+    color: #6b7280;
+}
+select option[value=""][disabled] {
+    display: none;
+}
+select option {
+    color: #000;
+}
+</style>
 @endsection
