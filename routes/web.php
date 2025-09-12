@@ -126,6 +126,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/report', [BookController::class, 'generateReport'])->name('admin.books.report');
     });
 
+
+// Halaman Denda
+Route::get('/admin/penalty', function () {
+    $user = Auth::user();
+    
+    // Blokir anggota biasa
+    if (!$user || ($user->role !== 'admin' && $user->role !== 'pustakawan')) {
+        return redirect()->route('home')->with('error', 'Anda tidak memiliki akses ke halaman admin.');
+    }
+    
+    return view('admin.books.penalty');
+})->name('admin.penalty');
+
     // Admin User Management Routes
     Route::prefix('admin')->group(function () {
         // Update Role User
@@ -142,18 +155,6 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-
-// Halaman Denda
-Route::get('/admin/penalty', function () {
-    $user = Auth::user();
-    
-    // Blokir anggota biasa
-    if (!$user || ($user->role !== 'admin' && $user->role !== 'pustakawan')) {
-        return redirect()->route('home')->with('error', 'Anda tidak memiliki akses ke halaman admin.');
-    }
-    
-    return view('admin.books.penalty');
-})->name('admin.penalty');
 
 // ===================
 // UTILITY ROUTES
