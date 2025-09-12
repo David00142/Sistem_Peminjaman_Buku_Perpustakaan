@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>@yield('title', 'Admin Dashboard')</title>
+    <title>@yield('title', 'Admin Dashboard') | BOBOOK</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
@@ -28,14 +28,13 @@
             background-color: #3B82F6;
             transition: width 0.3s ease;
         }
-        .nav-item:hover::after {
+        .nav-item:hover::after, .nav-item.active::after {
             width: 100%;
         }
     </style>
 </head>
 <body class="bg-gray-50 flex flex-col min-h-screen">
 
-    <!-- Header -->
     <header class="bg-white shadow-md">
         <div class="container mx-auto px-4 py-3">
             <div class="flex items-center justify-between">
@@ -46,12 +45,12 @@
                     <h1 class="brand-font text-2xl font-bold text-blue-800">BOBOOK</h1>
                 </div>
                 <div class="relative">
-                    <button class="flex items-center space-x-2 focus:outline-none" id="profileButton">
+                    <button class="flex items-center space-x-2 focus:outline-none" id="profileButton" aria-haspopup="true" aria-expanded="false">
                         <div class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
                             @if(Auth::check())
-                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }} <!-- Display first letter of user's name -->
+                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                             @else
-                                G <!-- Default if user is not logged in -->
+                                G
                             @endif
                         </div>
                         <div class="text-left hidden md:block">
@@ -73,27 +72,25 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
-
-                    <!-- Dropdown Menu -->
-                    <div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50 hidden">
+                    <div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50 hidden" role="menu" aria-orientation="vertical" aria-labelledby="profileButton">
                         @if(Auth::check())
                             <div class="px-4 py-2 border-b">
                                 <p class="text-sm font-medium text-gray-800">{{ Auth::user()->name }}</p>
                                 <p class="text-xs text-gray-500">{{ Auth::user()->email }}</p>
                             </div>
-                            <a href="{{ route('profile.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Detail Profile</a>
-                            <a href="{{ route('history.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">My History</a>
+                            <a href="{{ route('profile.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">Detail Profile</a>
+                            <a href="{{ route('history.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">My History</a>
                             <a href="{{ route('logout') }}" 
                                onclick="event.preventDefault(); document.getElementById('logout-form').submit();" 
-                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">
                                 Logout
                             </a>
                             <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
                                 @csrf
                             </form>
                         @else
-                            <a href="{{ route('login') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Login</a>
-                            <a href="{{ route('register') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Register</a>
+                            <a href="{{ route('login') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">Login</a>
+                            <a href="{{ route('register') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">Register</a>
                         @endif
                     </div>
                 </div>
@@ -101,33 +98,33 @@
         </div>
     </header>
 
-    <!-- Navigation Bar -->
     <nav class="bg-blue-600 shadow-md">
         <div class="container mx-auto px-4">
             <div class="flex justify-center space-x-12 py-3">
-                <a href="{{ route('admin.index') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                <a href="{{ route('admin.index') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.index') ? 'active' : '' }}">
                     <span>Data User</span>
                 </a>
-                <a href="{{ route('admin.books.create') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                <a href="{{ route('admin.books.create') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.books.create') ? 'active' : '' }}">
                     <span>Add Book</span>
                 </a>
-                <a href="{{ route('admin.books.booked') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                <a href="{{ route('admin.books.booked') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.books.booked') ? 'active' : '' }}">
                     <span>Booked</span>
                 </a>
-                <a href="#" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
+                <a href="{{ route('admin.books.borrowed') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.books.borrowed') ? 'active' : '' }}">
+                    <span>Borrowed</span>
+                </a>
+                <a href="{{ route('admin.penalty') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.penalty') ? 'active' : '' }}">
                     <span>Penalty</span>
                 </a>
             </div>
         </div>
     </nav>
-
-    <!-- Main Content -->
+    
     <main class="container mx-auto px-4 py-6 flex-grow">
         @yield('content')
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-gray-800 text-white py-6 mt-12">
+    <footer class="bg-gray-800 text-white py-6 mt-auto">
         <div class="container mx-auto px-4">
             <div class="flex flex-col md:flex-row justify-between items-center">
                 <div class="mb-4 md:mb-0">
@@ -135,7 +132,7 @@
                     <p class="text-sm text-gray-400">Sistem Peminjaman Buku Perpustakaan</p>
                 </div>
                 <div class="text-center md:text-right">
-                    <p class="text-sm text-gray-400">&copy; 2025 BOBOOK. All rights reserved.</p>
+                    <p class="text-sm text-gray-400">&copy; {{ date('Y') }} BOBOOK. All rights reserved.</p>
                 </div>
             </div>
         </div>
@@ -144,10 +141,25 @@
     @stack('scripts')
 
     <script>
-        // JavaScript to toggle dropdown visibility on click
-        document.getElementById('profileButton').addEventListener('click', function() {
+        document.addEventListener('DOMContentLoaded', function() {
+            const profileButton = document.getElementById('profileButton');
             const dropdownMenu = document.getElementById('dropdownMenu');
-            dropdownMenu.classList.toggle('hidden'); // Toggle the dropdown menu visibility
+            let isDropdownOpen = false;
+
+            profileButton.addEventListener('click', function() {
+                isDropdownOpen = !isDropdownOpen;
+                dropdownMenu.classList.toggle('hidden');
+                profileButton.setAttribute('aria-expanded', isDropdownOpen);
+            });
+
+            // Close dropdown if user clicks outside
+            window.addEventListener('click', function(e) {
+                if (!profileButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                    dropdownMenu.classList.add('hidden');
+                    profileButton.setAttribute('aria-expanded', 'false');
+                    isDropdownOpen = false;
+                }
+            });
         });
     </script>
 </body>

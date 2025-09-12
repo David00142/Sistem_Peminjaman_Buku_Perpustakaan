@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Auth/RegisterController.php
 
 namespace App\Http\Controllers\Auth;
 
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 
 class RegisterController extends Controller
 {
+    // TAMBAHKAN METHOD INI
     public function showRegistrationForm()
     {
         $kelasOptions = [
@@ -46,9 +48,9 @@ class RegisterController extends Controller
                 'max:255',
                 'regex:/^[^0-9]*$/'
             ],
-            'email' => 'required|string|email|max:255|unique:users', // PASTIKAN 'users' bukan 'users_tb'
+            'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'kelas' => 'required|string',
+            'kelas' => 'required|string', // validasi kelas
         ], [
             'name.regex' => 'Nama tidak boleh mengandung angka.',
             'kelas.required' => 'Silakan pilih kelas Anda.'
@@ -60,13 +62,13 @@ class RegisterController extends Controller
                 ->withInput();
         }
 
-        // Buat user di tabel 'users'
+        // Buat user dan simpan kelas
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'kelas' => $request->kelas,
-            'role' => 'anggota',
+            'role' => 'anggota', // default role anggota
         ]);
 
         Auth::login($user);

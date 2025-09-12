@@ -14,31 +14,33 @@
         .brand-font {
             font-family: 'Merriweather', serif;
         }
+        /* Style for active navigation item */
+        .nav-item.active {
+            background-color: #2563EB; /* A slightly lighter blue than the background, but still distinct */
+            color: #ffffff; /* White text for active link */
+            border-radius: 0.375rem; /* Rounded corners */
+            padding: 0.5rem 1rem; /* Adjust padding */
+        }
+        /* Default style for navigation item */
         .nav-item {
-            position: relative;
-            padding-bottom: 2px;
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            color: #ffffff; /* Default white text */
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
-        .nav-item::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background-color: #3B82F6;
-            transition: width 0.3s ease;
-        }
-        .nav-item:hover::after {
-            width: 100%;
+        /* Hover style for navigation item */
+        .nav-item:hover:not(.active) { /* Apply hover only if not active */
+            background-color: #3B82F6; /* Blue hover for all links */
+            color: #ffffff;
+            border-radius: 0.375rem;
         }
     </style>
 </head>
 <body class="bg-gray-50 flex flex-col min-h-screen">
-    <!-- Header -->
     <header class="bg-white shadow-md">
         <div class="container mx-auto px-4 py-3">
             <div class="flex items-center justify-between">
-                <!-- Logo and App Name -->
                 <div class="flex items-center space-x-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -46,8 +48,7 @@
                     <h1 class="brand-font text-2xl font-bold text-blue-800">BOBOOK</h1>
                 </div>
 
-                <!-- Search Bar -->
-                <div class="flex-1 mx-8">
+                <div class="flex-1 mx-8 hidden md:block">
                     <div class="relative">
                         <input type="text" placeholder="Cari buku, penulis, atau kategori..." 
                                class="w-full py-2 px-4 pr-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -59,21 +60,20 @@
                     </div>
                 </div>
 
-                <!-- User Profile -->
                 <div class="relative">
                     <button class="flex items-center space-x-2 focus:outline-none" id="profileButton">
                         <div class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
                             @if(Auth::check())
-                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}  <!-- Display first letter of user's name -->
+                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                             @else
-                                G <!-- Default if user is not logged in -->
+                                G
                             @endif
                         </div>
                         <div class="text-left hidden md:block">
                             @if(Auth::check())
                                 <p class="text-sm font-medium text-gray-800">{{ Auth::user()->name }}</p>
                                 <p class="text-xs text-gray-500">
-                                    @if(Auth::user()->role === 'pustakawan') <!-- Check if the role is 'pustakawan' -->
+                                    @if(Auth::user()->role === 'pustakawan')
                                         Admin Pustakawan
                                     @else
                                         Anggota Perpustakaan
@@ -89,8 +89,6 @@
                         </svg>
                     </button>
 
-
-                    <!-- Dropdown Menu -->
                     <div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50 hidden">
                         @if(Auth::check())
                             <div class="px-4 py-2 border-b">
@@ -116,45 +114,53 @@
             </div>
         </div>
 
-<!-- Navigation Bar -->
-<nav class="bg-blue-600 shadow-md">
-    <div class="container mx-auto px-4">
-        <div class="flex justify-center space-x-12 py-3">
-            <a href="{{ route('home') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                <span>Home</span>
-            </a>
-            <a href="{{ route('available') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                </svg>
-                <span>Available Books</span>
-            </a>
-            <a href="#" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-                <span>Borrowed</span>
-            </a>
-            <a href="#" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>Penalty</span>
-            </a>
-        </div>
-    </div>
-</nav>
+        <nav class="bg-blue-600 shadow-md">
+            <div class="container mx-auto px-4">
+                <div class="flex justify-center space-x-4 py-2">
+                    <a href="{{ route('home') }}" class="nav-item text-white font-medium
+                    {{ Request::routeIs('home') ? 'active' : '' }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        <span>Home</span>
+                    </a>
+                    <a href="{{ route('available') }}" class="nav-item text-white font-medium
+                    {{ Request::routeIs('available') ? 'active' : '' }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <span>Available Books</span>
+                    </a>
+                    <a href="{{ route('booked') }}" class="nav-item text-white font-medium
+                    {{ Request::routeIs('booked') ? 'active' : '' }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        </svg>
+                        <span>Booked</span>
+                    </a>
+                    <a href="{{ route('borrowed-books') }}" class="nav-item text-white font-medium
+                    {{ Request::routeIs('borrowed-books') ? 'active' : '' }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0-8H8m0 0h8m-9 8h9" />
+                        </svg>
+                        <span>Borrowed</span>
+                    </a>
+                    <a href="{{ route('penalty') }}" class="nav-item text-white font-medium
+                    {{ Request::routeIs('penalty') ? 'active' : '' }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Penalty</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
     </header>
 
-    <!-- Main Content -->
     <main class="container mx-auto px-4 py-6 flex-grow">
         @yield('content')
     </main>
 
-    <!-- Footer -->
     <footer class="bg-gray-800 text-white py-6 mt-12">
         <div class="container mx-auto px-4">
             <div class="flex flex-col md:flex-row justify-between items-center">
@@ -171,11 +177,58 @@
 
     @stack('scripts')
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
         // JavaScript to toggle dropdown visibility on click
         document.getElementById('profileButton').addEventListener('click', function() {
             const dropdownMenu = document.getElementById('dropdownMenu');
-            dropdownMenu.classList.toggle('hidden'); // Toggle the dropdown menu visibility
+            dropdownMenu.classList.toggle('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const profileButton = document.getElementById('profileButton');
+            const dropdownMenu = document.getElementById('dropdownMenu');
+            
+            if (!profileButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+
+        // SweetAlert notifications
+        document.addEventListener('DOMContentLoaded', function() {
+            @if(session('alert_type') && session('alert_title'))
+                Swal.fire({
+                    icon: '{{ session('alert_type') }}',
+                    title: '{{ session('alert_title') }}',
+                    text: '{{ session('alert_message', '') }}',
+                    confirmButtonColor: '#3B82F6',
+                    confirmButtonText: 'OK',
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            @endif
+
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: '{{ session('error') }}',
+                    confirmButtonColor: '#EF4444',
+                    confirmButtonText: 'OK'
+                });
+            @endif
+
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: '{{ session('success') }}',
+                    confirmButtonColor: '#10B981',
+                    confirmButtonText: 'OK'
+                });
+            @endif
         });
     </script>
 </body>

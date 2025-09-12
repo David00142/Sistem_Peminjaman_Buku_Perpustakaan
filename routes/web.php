@@ -20,15 +20,24 @@ Route::get('/', function () {
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('login', [LoginController::class, 'login']);
-    Route::post('register', [RegisterController::class, 'register']);
     Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+    Route::post('register', [RegisterController::class, 'register']);
 });
 
 // Logout Route
-Route::post('logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth'); // Ensure logout works for authenticated users
+Route::post('logout', [LoginController::class, 'logout'])->name('logout')->middleware('auth');
 
 // Available Books Page
 Route::get('/available', [AvailableController::class, 'index'])->name('available');
+
+// Booked Books Page
+Route::get('/booked', [BookController::class, 'userBookedBooks'])->name('booked')->middleware('auth');
+
+// Borrowed user Books Page
+Route::get('/borrowed-books', [BookController::class, 'userBorrowHistory'])->name('borrowed-books')->middleware('auth');
+
+// Halaman Denda untuk user
+Route::get('/penalty', [BookController::class, 'userPenalties'])->name('penalty')->middleware('auth');
 
 // Home Route (protected by auth middleware)
 Route::get('/home', function () {
@@ -36,10 +45,26 @@ Route::get('/home', function () {
 })->name('home')->middleware('auth');
 
 // Profile Routes
-Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show')->middleware('auth');
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+});
 
 // History Routes
 Route::get('/history', [HistoryController::class, 'show'])->name('history.show')->middleware('auth');
+
+// Book Routes - Public
+Route::get('books/{id}', [BookController::class, 'show'])->name('book.show');
+
+// Book Routes - Protected (Booking)
+Route::middleware('auth')->group(function () {
+    Route::post('/books/{id}/booking', [BookController::class, 'booking'])
+    ->name('book.booking');
+    Route::get('/book-search', [BookController::class, 'searchBooks'])->name('book.search');
+    Route::get('/books/category/{category}', [BookController::class, 'getBooksByCategory'])->name('book.category');
+});
+
+
 
 // ===================
 // ADMIN ROUTES
@@ -59,7 +84,7 @@ Route::middleware('auth')->group(function () {
         return view('admin.index', compact('users'));
     })->name('admin.index');
 
-    // Route untuk BookController
+    // Route untuk BookController - Admin
     Route::prefix('admin/books')->group(function () {
         // Menampilkan form untuk tambah buku dan daftar buku
         Route::get('/create', [BookController::class, 'create'])->name('admin.books.create');
@@ -82,7 +107,7 @@ Route::middleware('auth')->group(function () {
         // Halaman Buku yang Dipinjam
         Route::get('/borrowed', [BookController::class, 'borrowedBooks'])->name('admin.books.borrowed');
         
-        // Konfirmasi peminjaman
+        // Konfirmasi peminjaman (dari booked ke borrowed)
         Route::post('/confirm-borrow/{id}', [BookController::class, 'confirmBorrow'])->name('admin.books.confirm-borrow');
         
         // Batalkan booking
@@ -93,16 +118,64 @@ Route::middleware('auth')->group(function () {
         
         // Perpanjang peminjaman
         Route::post('/extend-borrow/{id}', [BookController::class, 'extendBorrow'])->name('admin.books.extend-borrow');
+        
+        // Export data buku
+        Route::get('/export', [BookController::class, 'exportBooks'])->name('admin.books.export');
+        
+        // Generate laporan
+        Route::get('/report', [BookController::class, 'generateReport'])->name('admin.books.report');
     });
 
-    // Update Role User
-    Route::post('/admin/update-role/{id}', [AdminController::class, 'updateRole'])->name('admin.updateRole');
+    // Admin User Management Routes
+    Route::prefix('admin')->group(function () {
+        // Update Role User
+        Route::post('/update-role/{id}', [AdminController::class, 'updateRole'])->name('admin.updateRole');
 
-    // Update User (including kelas and role)
-    Route::put('/admin/update-user/{id}', [AdminController::class, 'updateUser'])->name('admin.updateUser');
+        // Update User (including kelas and role)
+        Route::put('/update-user/{id}', [AdminController::class, 'updateUser'])->name('admin.updateUser');
 
-    // Hapus User
-    Route::delete('/admin/delete-user/{id}', [AdminController::class, 'destroy'])->name('admin.deleteUser');
+        // Hapus User
+        Route::delete('/delete-user/{id}', [AdminController::class, 'destroy'])->name('admin.deleteUser');
+        
+        // User management page
+        Route::get('/users', [AdminController::class, 'index'])->name('admin.users.index');
+    });
 });
 
-Route::get('books/{id}', [BookController::class, 'show'])->name('book.show');
+
+// Halaman Denda
+Route::get('/admin/penalty', function () {
+    $user = Auth::user();
+    
+    // Blokir anggota biasa
+    if (!$user || ($user->role !== 'admin' && $user->role !== 'pustakawan')) {
+        return redirect()->route('home')->with('error', 'Anda tidak memiliki akses ke halaman admin.');
+    }
+    
+    return view('admin.books.penalty');
+})->name('admin.penalty');
+
+// ===================
+// UTILITY ROUTES
+// ===================
+Route::middleware('auth')->group(function () {
+    // Get user's borrowed books (API-like endpoint)
+    Route::get('/api/borrowed-books', [BookController::class, 'getBorrowedBooks'])->name('api.borrowed-books');
+    
+    // Get popular books
+    Route::get('/api/popular-books', function () {
+        $bookController = new BookController();
+        return response()->json($bookController->getPopularBooks());
+    })->name('api.popular-books');
+    
+    // Get book stats
+    Route::get('/api/book-stats', function () {
+        $bookController = new BookController();
+        return response()->json($bookController->getBookStats());
+    })->name('api.book-stats');
+});
+
+// Fallback route
+Route::fallback(function () {
+    return redirect()->route('welcome');
+});

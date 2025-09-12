@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Book;
 use App\Models\Borrow;
 use App\Models\User;
+use App\Models\Penalty;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class BookController extends Controller
 {
@@ -33,8 +35,8 @@ class BookController extends Controller
         
         // Ambil semua buku yang sudah ada, urutkan berdasarkan kategori dan judul
         $books = Book::orderBy('category')
-                     ->orderBy('title')
-                     ->get();
+                        ->orderBy('title')
+                        ->get();
         
         $book = null; // Inisialisasi variabel book
 
@@ -48,8 +50,8 @@ class BookController extends Controller
         
         $book = Book::findOrFail($id);
         $books = Book::orderBy('category')
-                     ->orderBy('title')
-                     ->get();
+                        ->orderBy('title')
+                        ->get();
 
         return view('admin.books.add-book', compact('books', 'book'));
     }
@@ -176,56 +178,118 @@ class BookController extends Controller
     }
 
     // Halaman Buku Terbooking
-public function bookedBooks()
-{
-    $this->checkAdminAccess();
-    
-    // Ambil data booking dengan relasi user dan book
-    $bookedBooks = Borrow::with(['user', 'book'])
-                         ->where('status', 'booked') // Only get books with status "booked"
-                         ->orderBy('created_at', 'desc') // Order by the most recent booking
-                         ->get();
+    public function bookedBooks()
+    {
+        $this->checkAdminAccess();
+        
+        // Ubah get() menjadi paginate()
+        $bookedBooks = Borrow::with(['book', 'user'])
+            ->where('status', 'booked')
+            ->latest()
+            ->paginate(10); // atau jumlah per halaman yang diinginkan
 
-    // Pass the data to the view
-    return view('admin.books.booked-books', compact('bookedBooks'));
-}
+        // Debug: log hasil query
+        logger()->info('Booked books data:', [
+            'count' => $bookedBooks->count(),
+            'total' => $bookedBooks->total(),
+            'books' => $bookedBooks->map(fn($b) => [
+                'id' => $b->id,
+                'book_title' => $b->book->title,
+                'user_name' => $b->user->name,
+                'requested_days' => $b->requested_days
+            ])->toArray()
+        ]);
 
+        return view('admin.books.booked-books', compact('bookedBooks'));
+    }
+    // Halaman booked books untuk user
+    public function userBookedBooks()
+    {
+        $user = Auth::user();
+        
+        Log::info('User accessing booked books: ' . $user->id);
+        
+        $bookedBooks = Borrow::with('book')
+            ->where('user_id', $user->id)
+            ->where('status', 'booked')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-    // Halaman Buku yang Dipinjam
+        return view('home.booked-books', compact('bookedBooks'));
+    }
+
+    // Riwayat peminjaman user
+    public function userBorrowHistory()
+    {
+        $user = Auth::user();
+        
+        $borrowHistory = Borrow::with('book')
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['borrowed', 'returned', 'overdue'])
+            ->orderBy('borrow_date', 'desc')
+            ->paginate(10);
+
+        return view('home.borrowed-books', compact('borrowHistory'));
+    }
+
+    // Denda user
+    public function userPenalties()
+    {
+        $user = Auth::user();
+        
+        // Ambil semua denda user
+        $penalties = Penalty::with(['borrow.book'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Hitung total denda
+        $totalUnpaid = Penalty::where('user_id', $user->id)
+            ->where('status', 'unpaid')
+            ->sum('amount');
+
+        $totalPaid = Penalty::where('user_id', $user->id)
+            ->where('status', 'paid')
+            ->sum('amount');
+
+        return view('home.penalty', compact('penalties', 'totalUnpaid', 'totalPaid'));
+    }
+
+    // Halaman Buku yang Dipinjam untuk admin
     public function borrowedBooks()
     {
         $this->checkAdminAccess();
         
-        // Ambil data peminjaman dengan relasi user dan book
-        $borrowings = Borrow::with(['user', 'book'])
-                           ->where('status', 'borrowed')
-                           ->orderBy('borrow_date', 'desc')
-                           ->get();
+        // Ambil data buku yang sedang dipinjam (status = 'borrowed')
+        $borrowedBooks = Borrow::with(['book', 'user'])
+            ->where('status', 'borrowed')
+            ->orderBy('borrow_date', 'desc')
+            ->get();
 
-        return view('admin.books.borrowed-books', compact('borrowings'));
+        return view('admin.books.borrowed-books', compact('borrowedBooks'));
     }
 
+    // Get borrowed books untuk API
     public function getBorrowedBooks()
-{
-    $user = Auth::user();
-    
-    // Get all borrowed books where the status is 'borrowed' for the current user
-    $borrowedBooks = Borrow::with('book')
-        ->where('user_id', $user->id)
-        ->where('status', 'borrowed')
-        ->orderBy('borrow_date', 'desc')
-        ->get();
-    
-    return $borrowedBooks;
-}
-
+    {
+        $user = Auth::user();
+        
+        // Get all borrowed books where the status is 'borrowed' for the current user
+        $borrowedBooks = Borrow::with('book')
+            ->where('user_id', $user->id)
+            ->where('status', 'borrowed')
+            ->orderBy('borrow_date', 'desc')
+            ->get();
+        
+        return $borrowedBooks;
+    }
 
     // Konfirmasi peminjaman buku (dari booked ke borrowed)
     public function confirmBorrow(Request $request, $id)
     {
         $this->checkAdminAccess();
         
-        $borrow = Borrow::findOrFail($id);
+        $borrow = Borrow::with('book')->findOrFail($id);
         $book = $borrow->book;
 
         // Validasi
@@ -233,24 +297,49 @@ public function bookedBooks()
             'duration_days' => 'required|integer|min:1|max:30'
         ]);
 
-        // Kurangi booked dan tambahkan borrowed
-        if ($book->booked > 0) {
-            $book->booked -= 1;
+        // Pastikan status masih booked
+        if ($borrow->status !== 'booked') {
+            return redirect()->back()->with('error', 'Status peminjaman tidak valid untuk dikonfirmasi.');
+        }
+
+        DB::beginTransaction();
+        
+        try {
+            // Update buku
+            if ($book->booked > 0) {
+                $book->booked -= 1;
+            }
             $book->borrowed += 1;
             $book->save();
 
-            // Update status peminjaman
+            // Update peminjaman
             $borrow->status = 'borrowed';
             $borrow->borrow_date = now();
-            $borrow->return_date = now()->addDays($request->duration_days);
+            
+            // **PERBAIKAN DI SINI**: Pastikan konversi ke integer
+            $duration = (int) $request->duration_days;
+            $returnDate = now()->copy()->addDays($duration);
+            $borrow->return_date = $returnDate;
+            
+            $borrow->duration_days = $duration;
             $borrow->save();
 
-            return redirect()->route('admin.books.booked')->with('success', 'Peminjaman buku dikonfirmasi');
+            DB::commit();
+
+            Log::info('Borrow confirmed: ', [
+                'borrow_id' => $borrow->id,
+                'duration_days' => $duration,
+                'return_date' => $returnDate
+            ]);
+
+            return redirect()->route('admin.books.booked')->with('success', 'Peminjaman berhasil dikonfirmasi untuk ' . $duration . ' hari');
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error confirming borrow: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal mengkonfirmasi peminjaman: ' . $e->getMessage());
         }
-
-        return redirect()->back()->with('error', 'Tidak ada booking untuk buku ini');
     }
-
     // Batalkan booking
     public function cancelBooking($id)
     {
@@ -259,17 +348,34 @@ public function bookedBooks()
         $borrow = Borrow::findOrFail($id);
         $book = $borrow->book;
         
-        if ($book->booked > 0) {
-            $book->booked -= 1;
-            $book->save();
+        // Pastikan status masih booked
+        if ($borrow->status !== 'booked') {
+            return redirect()->back()->with('error', 'Status peminjaman tidak valid untuk dibatalkan.');
+        }
+
+        DB::beginTransaction();
+        
+        try {
+            // Kurangi booked count hanya jika masih positif
+            if ($book->booked > 0) {
+                $book->booked -= 1;
+                $book->save();
+            }
 
             // Hapus record booking
             $borrow->delete();
 
-            return redirect()->route('admin.books.booked')->with('success', 'Booking dibatalkan');
-        }
+            DB::commit();
 
-        return redirect()->back()->with('error', 'Tidak ada booking untuk buku ini');
+            Log::info('Booking cancelled: ' . $id);
+
+            return redirect()->route('admin.books.booked')->with('success', 'Booking berhasil dibatalkan');
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error canceling booking: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membatalkan booking: ' . $e->getMessage());
+        }
     }
 
     // Kembalikan buku
@@ -280,16 +386,34 @@ public function bookedBooks()
         $borrow = Borrow::findOrFail($id);
         $book = $borrow->book;
         
+        // Pastikan status borrowed
+        if ($borrow->status !== 'borrowed') {
+            return redirect()->back()->with('error', 'Status peminjaman tidak valid.');
+        }
+
         if ($book->borrowed > 0) {
-            $book->borrowed -= 1;
-            $book->save();
+            DB::beginTransaction();
+            
+            try {
+                $book->borrowed -= 1;
+                $book->save();
 
-            // Update status pengembalian
-            $borrow->status = 'returned';
-            $borrow->actual_return_date = now();
-            $borrow->save();
+                // Update status pengembalian
+                $borrow->status = 'returned';
+                $borrow->actual_return_date = now();
+                $borrow->save();
 
-            return redirect()->route('admin.books.borrowed')->with('success', 'Buku berhasil dikembalikan');
+                DB::commit();
+
+                Log::info('Book returned: ' . $id);
+
+                return redirect()->route('admin.books.borrowed')->with('success', 'Buku berhasil dikembalikan');
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error returning book: ' . $e->getMessage());
+                return redirect()->back()->with('error', 'Gagal mengembalikan buku: ' . $e->getMessage());
+            }
         }
 
         return redirect()->back()->with('error', 'Tidak ada peminjaman untuk buku ini');
@@ -305,11 +429,36 @@ public function bookedBooks()
         ]);
 
         $borrow = Borrow::findOrFail($id);
-        $borrow->return_date = $borrow->return_date->addDays($request->additional_days);
-        $borrow->extension_count += 1;
-        $borrow->save();
+        
+        // Pastikan status borrowed
+        if ($borrow->status !== 'borrowed') {
+            return redirect()->back()->with('error', 'Hanya peminjaman yang aktif dapat diperpanjang.');
+        }
 
-        return redirect()->back()->with('success', 'Peminjaman diperpanjang');
+        DB::beginTransaction();
+        
+        try {
+            // **PERBAIKAN DI SINI**: Pastikan konversi ke integer
+            $additionalDays = (int) $request->additional_days;
+            $borrow->return_date = Carbon::parse($borrow->return_date)->addDays($additionalDays);
+            $borrow->extension_count += 1;
+            $borrow->save();
+
+            DB::commit();
+
+            Log::info('Borrow extended: ', [
+                'borrow_id' => $id,
+                'additional_days' => $additionalDays,
+                'new_return_date' => $borrow->return_date
+            ]);
+
+            return redirect()->back()->with('success', 'Peminjaman berhasil diperpanjang ' . $additionalDays . ' hari');
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error extending borrow: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memperpanjang peminjaman: ' . $e->getMessage());
+        }
     }
 
     // ==============================================
@@ -319,57 +468,71 @@ public function bookedBooks()
     /**
      * Menampilkan detail buku untuk anggota
      */
-    public function show($id)
-    {
-        $book = Book::findOrFail($id);
-        return view('book.show', compact('book'));
+public function booking($id, Request $request)
+{
+    // Validasi input
+    $validated = $request->validate([
+        'duration' => 'required|integer|min:1|max:30'
+    ]);
+
+    $book = Book::findOrFail($id);
+    $user = Auth::user();
+
+    // Cek ketersediaan buku
+    $availableStock = $book->quantity - ($book->borrowed + $book->booked);
+    if ($availableStock <= 0) {
+        return back()->with('error', 'Buku tidak tersedia untuk dipinjam.');
     }
 
-    /**
-     * Memproses booking buku oleh anggota
-     */
-    public function booking(Request $request, $id)
-    {
-        $user = Auth::user();
-        $book = Book::findOrFail($id);
-        
-        // Validasi stok tersedia
-        $availableStock = $book->quantity - $book->borrowed - $book->booked;
-        if ($availableStock <= 0) {
-            return redirect()->back()->with('error', 'Buku sedang tidak tersedia untuk dipinjam');
-        }
-        
-        // Tambahkan booking
-        $book->booked += 1;
-        $book->save();
-        
-        // Catat di history peminjaman
-        Borrow::create([
-            'user_id' => $user->id,
-            'book_id' => $book->id,
-            'status' => 'booked',
-            'borrow_date' => now(),
-            'return_date' => now()->addDays(2), // Batas waktu pengambilan 2 hari
-        ]);
-        
-        return redirect()->route('home')->with('success', 'Buku berhasil dipesan! Silakan ambil di perpustakaan dalam 2 hari.');
+    // Cek apakah user sudah meminjam buku yang sama
+    $existingBorrow = Borrow::where('user_id', $user->id)
+        ->where('book_id', $book->id)
+        ->whereIn('status', ['booked', 'borrowed'])
+        ->first();
+
+    if ($existingBorrow) {
+        return back()->with('error', 'Anda sudah meminjam atau memesan buku ini.');
     }
+
+    $duration = (int) $validated['duration'];
+
+    // Buat record peminjaman dengan status 'booked' - BERIKAN NILAI DEFAULT
+    $borrow = Borrow::create([
+        'user_id' => $user->id,
+        'book_id' => $book->id,
+        'requested_days' => $duration,
+        'status' => 'booked',
+        'return_date' => now()->addYears(10), // Berikan nilai default jauh di masa depan
+        'borrow_date' => now()->addYears(10), // Berikan nilai default
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    // Update jumlah buku yang dipesan
+    $book->increment('booked');
+
+    // Redirect dengan pesan sukses
+    return redirect()->route('booked')->with([
+        'success' => 'Booking Berhasil!',
+        'message' => 'Buku "' . $book->title . '" berhasil dipesan! Silakan tunggu konfirmasi admin.'
+    ]);
+}
 
     /**
      * Mendapatkan buku populer berdasarkan jumlah peminjaman
      */
-    public function getPopularBooks($limit = 6)
+    public static function getPopularBooks($limit = 6)
     {
         return Book::orderBy('borrowed', 'desc')
-                   ->orderBy('booked', 'desc')
-                   ->take($limit)
-                   ->get();
+                        ->orderBy('booked', 'desc')
+                        ->take($limit)
+                        ->get();
     }
 
     /**
      * Mendapatkan statistik buku untuk dashboard
      */
-    public function getBookStats()
+    public static function getBookStats()
     {
         $totalBooks = Book::count();
         $totalQuantity = Book::sum('quantity');
@@ -387,13 +550,13 @@ public function bookedBooks()
     /**
      * Mendapatkan aktivitas terbaru user
      */
-    public function getUserRecentActivity($userId, $limit = 5)
+    public static function getUserRecentActivity($userId, $limit = 5)
     {
         return Borrow::with('book')
-                    ->where('user_id', $userId)
-                    ->orderBy('created_at', 'desc')
-                    ->take($limit)
-                    ->get();
+                        ->where('user_id', $userId)
+                        ->orderBy('created_at', 'desc')
+                        ->take($limit)
+                        ->get();
     }
 
     /**
@@ -404,10 +567,10 @@ public function bookedBooks()
         $keyword = $request->input('keyword');
         
         $books = Book::where('title', 'like', "%$keyword%")
-                    ->orWhere('author', 'like', "%$keyword%")
-                    ->orWhere('category', 'like', "%$keyword%")
-                    ->orderBy('title')
-                    ->get();
+                        ->orWhere('author', 'like', "%$keyword%")
+                        ->orWhere('category', 'like', "%$keyword%")
+                        ->orderBy('title')
+                        ->get();
         
         return view('book-search', compact('books', 'keyword'));
     }
@@ -418,8 +581,8 @@ public function bookedBooks()
     public function getBooksByCategory($category)
     {
         $books = Book::where('category', $category)
-                    ->orderBy('title')
-                    ->get();
+                        ->orderBy('title')
+                        ->get();
         
         return view('book-category', compact('books', 'category'));
     }
@@ -430,9 +593,9 @@ public function bookedBooks()
     public function getBookCategories()
     {
         return Book::select('category')
-                  ->distinct()
-                  ->orderBy('category')
-                  ->pluck('category');
+                    ->distinct()
+                    ->orderBy('category')
+                    ->pluck('category');
     }
 
     // ==============================================
@@ -491,10 +654,27 @@ public function bookedBooks()
         $endDate = $request->input('end_date', now()->format('Y-m-d'));
         
         $reportData = Borrow::with(['user', 'book'])
-                          ->whereBetween('created_at', [$startDate, $endDate])
-                          ->orderBy('created_at', 'desc')
-                          ->get();
+                            ->whereBetween('created_at', [$startDate, $endDate])
+                            ->orderBy('created_at', 'desc')
+                            ->get();
         
         return view('admin.reports.borrow-report', compact('reportData', 'startDate', 'endDate'));
+    }
+
+    /**
+     * Otomatis update status overdue
+     */
+    public function updateOverdueStatus()
+    {
+        $overdueBorrows = Borrow::where('status', 'borrowed')
+                                ->where('return_date', '<', now())
+                                ->get();
+        
+        foreach ($overdueBorrows as $borrow) {
+            $borrow->status = 'overdue';
+            $borrow->save();
+        }
+        
+        return $overdueBorrows->count();
     }
 }
