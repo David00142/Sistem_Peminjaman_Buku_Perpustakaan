@@ -11,7 +11,6 @@ class AddKelasToUsersTable extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('kelas')->nullable()->after('email');
-            $table->string('role')->default('anggota')->after('kelas');
         });
     }
 
