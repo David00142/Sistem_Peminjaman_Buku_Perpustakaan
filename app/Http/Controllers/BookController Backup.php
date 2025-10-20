@@ -215,197 +215,39 @@ class BookController extends Controller
         return view('admin.books.borrowed-books', compact('borrowedBooks'));
     }
 
-    // ==============================================
-    // PERBAIKAN SISTEM PENALTY
-    // ==============================================
 
+    /**
+     * Halaman Manajemen Denda untuk admin.
+     */
+    public function penaltyAdmin()
+    {
+        $this->checkAdminAccess();
 
-/**
- * Halaman Manajemen Denda untuk admin - MENGGUNAKAN SISTEM YANG SAMA DENGAN ANGGOTA
- */
-public function penaltyAdmin()
-{
-    $this->checkAdminAccess();
-
-    // PROSES OTOMATIS: Gunakan sistem yang sama dengan anggota
-    $this->processAllUsersOverdueBorrows();
-
-    // 1. TOTAL DENDA BULAN INI (dibuat bulan ini, semua status)
-    $totalPenaltiesThisMonth = Penalty::whereYear('created_at', now()->year)
-                                     ->whereMonth('created_at', now()->month)
-                                     ->sum('amount');
-
-    // 2. DENDA BELUM DIBAYAR (unpaid, semua bulan)
-    $overduePenalties = Penalty::where('status', 'unpaid')
-                              ->sum('amount');
-
-    // 3. PEMINJAM DENGAN DENDA (hitung distinct user yang punya denda unpaid)
-    $usersWithPenalties = Penalty::where('status', 'unpaid')
-                                 ->distinct('user_id')
-                                 ->count('user_id');
-
-    // 4. TABEL DAFTAR DENDA
-    $penalties = Penalty::with(['user', 'borrow.book'])
-                        ->orderByRaw("FIELD(status, 'unpaid', 'waived', 'paid')")
-                        ->orderBy('created_at', 'desc')
-                        ->paginate(10);
-
-    return view('admin.books.penalty', compact(
-        'penalties', 
-        'totalPenaltiesThisMonth', 
-        'overduePenalties', 
-        'usersWithPenalties'
-    ));
-}
-
-/**
- * PROSES SEMUA PEMINJAMAN OVERDUE UNTUK SEMUA USER - DENGAN PERHITUNGAN MUTLAK
- */
-private function processAllUsersOverdueBorrows()
-{
-    try {
-        $overdueBorrows = Borrow::with(['user', 'book'])
-                               ->whereIn('status', ['borrowed', 'overdue'])
-                               ->where('return_date', '<', now())
-                               ->get();
-
-        $createdCount = 0;
-        $updatedCount = 0;
-
-        foreach ($overdueBorrows as $borrow) {
-            DB::beginTransaction();
-
-            try {
-                // Update status menjadi overdue jika masih borrowed
-                if ($borrow->status === 'borrowed') {
-                    $borrow->status = 'overdue';
-                    $borrow->save();
-                }
-
-                // PERBAIKAN: Hitung hari keterlambatan dengan cara MUTLAK
-                $returnDate = Carbon::parse($borrow->return_date)->startOfDay();
-                $today = now()->startOfDay();
-                
-                // Pastikan tanggal return sudah lewat dari hari ini
-                if ($today->greaterThan($returnDate)) {
-                    // PERBAIKAN: Gunakan perhitungan hari absolut
-                    $lateDays = $this->calculateAbsoluteLateDays($returnDate, $today);
-                    
-                    // PERBAIKAN: Gunakan 2.000 per hari
-                    $fineAmount = $lateDays * 2000;
-
-                    // DEBUG: Log perhitungan
-                    Log::info("Penalty Calculation - Borrow ID: {$borrow->id}, Return Date: {$returnDate}, Today: {$today}, Late Days: {$lateDays}, Amount: {$fineAmount}");
-
-                    // Cek apakah sudah ada denda untuk borrow ini
-                    $existingPenalty = Penalty::where('borrow_id', $borrow->id)
-                                             ->where('reason', 'late_return')
-                                             ->first();
-
-                    if (!$existingPenalty) {
-                        // Buat denda baru
-                        Penalty::create([
-                            'user_id' => $borrow->user_id,
-                            'borrow_id' => $borrow->id,
-                            'amount' => $fineAmount,
-                            'reason' => 'late_return',
-                            'status' => 'unpaid',
-                            'due_date' => now()->addDays(1),
-                            'notes' => 'Denda keterlambatan pengembalian buku. Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.'
-                        ]);
-                        $createdCount++;
-                    } else {
-                        // Update denda yang sudah ada hanya jika jumlah berubah
-                        if ($existingPenalty->status === 'unpaid' && $existingPenalty->amount != $fineAmount) {
-                            $existingPenalty->amount = $fineAmount;
-                            $existingPenalty->notes = 'Denda keterlambatan pengembalian buku. Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.';
-                            $existingPenalty->save();
-                            $updatedCount++;
-                        }
-                    }
-                }
-
-                DB::commit();
-
-            } catch (\Exception $e) {
-                DB::rollBack();
-                Log::error("Error processing overdue borrow ID {$borrow->id}: " . $e->getMessage());
-            }
-        }
-
-        Log::info("Admin Penalty: Processed {$createdCount} created, {$updatedCount} updated");
-        return ['created' => $createdCount, 'updated' => $updatedCount];
-
-    } catch (\Exception $e) {
-        Log::error('Error processing overdue borrows: ' . $e->getMessage());
-        return ['created' => 0, 'updated' => 0];
-    }
-}
-
-/**
- * Hitung hari keterlambatan secara MUTLAK (tanpa koma, absolut)
- */
-private function calculateAbsoluteLateDays($returnDate, $actualDate = null)
-{
-    $returnDate = Carbon::parse($returnDate)->startOfDay();
-    $actualDate = $actualDate ? Carbon::parse($actualDate)->startOfDay() : now()->startOfDay();
-    
-    // Jika masih dalam hari yang sama atau sebelum, tidak ada denda
-    if ($actualDate->lte($returnDate)) {
-        return 0;
-    }
-    
-    // PERBAIKAN: Gunakan diffInDays() yang memberikan hasil integer absolut
-    $lateDays = $returnDate->diffInDays($actualDate);
-    
-    // Pastikan hasilnya integer dan minimal 1
-    return max(1, (int)$lateDays);
-}
-
-/**
- * Get detail penalty untuk modal dengan perhitungan MUTLAK
- */
-public function getPenaltyDetail($id)
-{
-    $this->checkAdminAccess();
-
-    $penalty = Penalty::with(['user', 'borrow.book'])
-        ->findOrFail($id);
-
-    // PERBAIKAN: Hitung hari keterlambatan dengan cara MUTLAK
-    $lateDays = 0;
-    if ($penalty->reason === 'late_return' && $penalty->borrow && $penalty->borrow->return_date) {
-        $dueDate = Carbon::parse($penalty->borrow->return_date)->startOfDay();
+        // 1. Total Denda Bulan Ini
+        // Mengambil denda yang DIBUAT (created_at) bulan ini
+        $totalPenaltiesThisMonth = Penalty::whereMonth('created_at', now()->month)
+                                         ->whereYear('created_at', now()->year)
+                                         ->sum('amount');
         
-        if ($penalty->borrow->actual_return_date) {
-            $actualReturnDate = Carbon::parse($penalty->borrow->actual_return_date)->startOfDay();
-        } else {
-            $actualReturnDate = now()->startOfDay();
-        }
-        
-        if ($actualReturnDate->greaterThan($dueDate)) {
-            // PERBAIKAN: Gunakan perhitungan hari absolut
-            $lateDays = $this->calculateAbsoluteLateDays($dueDate, $actualReturnDate);
-        }
-    }
+        // 2. Denda Tertunggak (Unpaid - KESELURUHAN)
+        // Variabel ini di view Anda digunakan sebagai statistik, jadi ambil semua yang unpaid
+        $overduePenalties = Penalty::where('status', 'unpaid')
+                                  ->sum('amount');
 
-    return response()->json([
-        'user_name' => $penalty->user->name ?? 'User Tidak Ditemukan',
-        'user_email' => $penalty->user->email ?? '-',
-        'book_title' => $penalty->borrow->book->title ?? 'Buku Tidak Ditemukan',
-        'book_author' => $penalty->borrow->book->author ?? '-',
-        'borrow_date' => optional($penalty->borrow->borrow_date)->format('d M Y') ?? '-',
-        'return_date' => optional($penalty->borrow->return_date)->format('d M Y') ?? '-',
-        'late_days' => $lateDays,
-        'amount' => $penalty->amount,
-        'reason' => $penalty->reason === 'late_return' ? 'Keterlambatan Pengembalian' : 
-                   ($penalty->reason === 'damaged' ? 'Buku Rusak' : 
-                   ($penalty->reason === 'lost' ? 'Buku Hilang' : $penalty->reason)),
-        'notes' => $penalty->notes,
-        'status' => $penalty->status
-    ]);
-}
-    
+        // 3. Peminjam dengan Denda
+        $usersWithPenalties = Penalty::where('status', 'unpaid')
+                                     ->distinct('user_id')
+                                     ->count('user_id');
+
+        // 4. Tabel Daftar Denda (Penalties)
+        $penalties = Penalty::with(['user', 'borrow.book'])
+                            ->orderByRaw("FIELD(status, 'unpaid', 'waived', 'paid')")
+                            ->orderBy('created_at', 'desc')
+                            ->paginate(10);
+
+        // Kirim semua variabel yang dibutuhkan ke view
+        return view('admin.books.penalty', compact('penalties', 'totalPenaltiesThisMonth', 'overduePenalties', 'usersWithPenalties'));
+    }
     /**
      * Menandai denda sebagai 'paid' (dibayar).
      */
@@ -455,18 +297,23 @@ public function getPenaltyDetail($id)
             return redirect()->back()->with('error', 'Gagal menghapus denda: ' . $e->getMessage());
         }
     }
-
-    /**
+/**
      * Menampilkan detail satu buku.
      */
     public function show($id)
     {
+        // Menggunakan findOrFail untuk mengambil buku berdasarkan ID. 
+        // Jika buku tidak ditemukan, Laravel akan otomatis menampilkan halaman 404.
         $book = Book::findOrFail($id);
+
+        // Menghitung stok yang tersedia (available stock)
         $availableStock = max(0, $book->quantity - $book->borrowed - $book->booked);
 
+        // Anda bisa menambahkan logic pengecekan atau logic lain di sini.
+
+        // Mengirim data buku dan stok ke view
         return view('home.book-detail', compact('book', 'availableStock'));
     }
-
     /**
      * Konfirmasi peminjaman buku (dari booked ke borrowed).
      */
@@ -558,87 +405,84 @@ public function getPenaltyDetail($id)
         }
     }
 
-/**
- * Kembalikan buku dengan sistem denda otomatis yang benar.
- */
-public function returnBook($id)
-{
-    $this->checkAdminAccess();
+ 
+    /**
+     * Kembalikan buku.
+     */
+    public function returnBook($id)
+    {
+        $this->checkAdminAccess();
 
-    $borrow = Borrow::with('book')->findOrFail($id);
-    $book = $borrow->book;
+        $borrow = Borrow::with('book')->findOrFail($id);
+        $book = $borrow->book;
 
-    if ($borrow->status !== 'borrowed' && $borrow->status !== 'overdue') {
-        return redirect()->back()->with('error', 'Status peminjaman tidak valid.');
-    }
-    
-    DB::beginTransaction();
-    
-    try {
-        $returnDate = Carbon::parse($borrow->return_date)->startOfDay();
-        $actualReturnDate = now()->startOfDay();
-        $lateDays = 0;
-        $fineAmount = 0;
+        if ($borrow->status !== 'borrowed' && $borrow->status !== 'overdue') {
+            return redirect()->back()->with('error', 'Status peminjaman tidak valid.');
+        }
         
-        // Hitung keterlambatan dengan benar - MUTLAK
-        if ($actualReturnDate->greaterThan($returnDate)) {
-            // PERBAIKAN: Gunakan perhitungan hari absolut
-            $lateDays = $this->calculateAbsoluteLateDays($returnDate, $actualReturnDate);
-            // PERBAIKAN: Gunakan 2.000 per hari
-            $fineAmount = $lateDays * 2000;
+        DB::beginTransaction();
+        
+        try {
+            $returnDate = Carbon::parse($borrow->return_date);
+            $actualReturnDate = now();
+            $lateDays = 0;
+            $fineAmount = 0;
             
-            // Cek apakah denda untuk peminjaman ini sudah ada
-            $existingPenalty = Penalty::where('borrow_id', $borrow->id)
-                                      ->where('reason', 'late_return')
-                                      ->first();
+            if ($actualReturnDate->greaterThan($returnDate)) {
+                $lateDays = $actualReturnDate->diffInDays($returnDate);
+                $fineAmount = $lateDays * 2000;
+                
+                // Cek apakah denda untuk peminjaman ini sudah ada dan belum dibayar
+                $existingPenalty = Penalty::where('borrow_id', $borrow->id)
+                                          ->whereIn('status', ['unpaid', 'waived'])
+                                          ->first();
 
-            if (!$existingPenalty) {
-                // Buat denda baru
-                Penalty::create([
-                    'user_id' => $borrow->user_id,
-                    'borrow_id' => $borrow->id,
-                    'amount' => $fineAmount,
-                    'reason' => 'late_return',
-                    'status' => 'unpaid',
-                    'due_date' => $actualReturnDate->copy()->addDays(7),
-                    'notes' => 'Keterlambatan pengembalian buku selama ' . $lateDays . ' hari. (Rp 2.000/hari)'
-                ]);
-            } else {
-                // Update denda yang sudah ada
-                $existingPenalty->update([
-                    'amount' => $fineAmount,
-                    'notes' => 'Keterlambatan pengembalian buku selama ' . $lateDays . ' hari. (Rp 2.000/hari)',
-                ]);
+                if (!$existingPenalty) {
+                    Penalty::create([
+                        'user_id' => $borrow->user_id,
+                        'borrow_id' => $borrow->id,
+                        'amount' => $fineAmount,
+                        'reason' => 'Keterlambatan pengembalian buku selama ' . $lateDays . ' hari. (Rp2k/hari)',
+                        'status' => 'unpaid',
+                        // due_date denda ini bisa disesuaikan, misal 7 hari dari sekarang
+                        'due_date' => $actualReturnDate->copy()->addDays(7), 
+                    ]);
+                } else {
+                     // Jika sudah ada denda, update jumlahnya
+                     $existingPenalty->update([
+                        'amount' => $fineAmount,
+                        'reason' => 'Keterlambatan pengembalian buku selama ' . $lateDays . ' hari. (Rp2k/hari)',
+                     ]);
+                }
             }
-        }
+            // Logika Anda untuk return buku di bawah ini sudah benar:
+            if ($book->borrowed > 0) {
+                $book->borrowed -= 1;
+                $book->save();
+            }
 
-        // Update status buku
-        if ($book->borrowed > 0) {
-            $book->borrowed -= 1;
-            $book->save();
-        }
+            $borrow->status = 'returned';
+            $borrow->actual_return_date = $actualReturnDate;
+            $borrow->save();
 
-        $borrow->status = 'returned';
-        $borrow->actual_return_date = now(); // Simpan dengan timestamp lengkap
-        $borrow->save();
+            DB::commit();
 
-        DB::commit();
+            Log::info('Book returned: ' . $id);
+            
+            $message = 'Buku berhasil dikembalikan.';
+            if ($lateDays > 0) {
+                $message .= ' Terdapat denda sebesar Rp' . number_format($fineAmount, 0, ',', '.') . ' karena terlambat.';
+            }
 
-        Log::info('Book returned: ' . $id);
+            return redirect()->route('admin.books.borrowed')->with('success', $message);
         
-        $message = 'Buku berhasil dikembalikan.';
-        if ($lateDays > 0) {
-            $message .= ' Terdapat denda keterlambatan sebesar Rp' . number_format($fineAmount, 0, ',', '.') . ' (' . $lateDays . ' hari).';
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error returning book: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal mengembalikan buku: ' . $e->getMessage());
         }
-
-        return redirect()->route('admin.books.borrowed')->with('success', $message);
-    
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error returning book: ' . $e->getMessage());
-        return redirect()->back()->with('error', 'Gagal mengembalikan buku: ' . $e->getMessage());
     }
-}
+
     /**
      * Perpanjang peminjaman.
      */
@@ -685,66 +529,85 @@ public function returnBook($id)
     // METHOD UNTUK ANGGOTA & DASHBOARD
     // ==============================================
 
-    /**
-     * Halaman home/dashboard dengan search functionality
-     */
-    public function home(Request $request)
-    {
-        $search = $request->get('search');
+ /**
+ * Halaman home/dashboard dengan search functionality
+ */
+public function home(Request $request)
+{
+    $search = $request->get('search');
 
-        if ($search) {
-            return redirect()->route('search', ['search' => $search]);
-        }
-        
-        $books = $this->getPopularBooks(10); 
+    if ($search) {
+        // Jika ada query pencarian, REDIRECT ke route pencarian yang terpisah
+        return redirect()->route('search', ['search' => $search]);
+    }
+    
+    // Logika default home (tampilkan buku populer/terbaru, dll.)
+    // Asumsi getPopularBooks ada dan mengembalikan Collection/Paginator
+    $books = $this->getPopularBooks(10); 
 
-        // Statistik Dashboard
-        $totalBooks = Book::count(); 
-        $borrowedCount = $this->getBorrowedBooksCount();
-        $availableBooks = max(0, Book::sum(DB::raw('quantity - borrowed - booked')));
-        $totalUsers = User::count(); 
+    // --- Statistik Dashboard (TAMBAHKAN KEMBALI BAGIAN INI) ---
+    // Pastikan variabel-variabel ini didefinisikan sebelum compact()
+    
+    // 1. Total Buku
+    $totalBooks = Book::count(); 
+    
+    // 2. Count Buku Dipinjam (Asumsi $this->getBorrowedBooksCount() sudah ada)
+    $borrowedCount = $this->getBorrowedBooksCount();
 
-        // Aktivitas terbaru
-        $recentBorrows = Borrow::with(['book', 'user'])
-            ->where('status', 'borrowed')
-            ->orderBy('borrow_date', 'desc')
-            ->take(5)
-            ->get();
+    // 3. Available Books (Hitung secara efisien di DB)
+    // Jika kolom quantity, borrowed, dan booked ada di model Book
+    $availableBooks = max(0, Book::sum(DB::raw('quantity - borrowed - booked')));
+    
+    // 4. Total User
+    $totalUsers = User::count(); 
 
-        return view('home.home', compact(
-            'borrowedCount', 
-            'totalBooks', 
-            'availableBooks',
-            'totalUsers',
-            'recentBorrows',
-            'books', 
-            'search' 
-        ));
+    // Aktivitas terbaru
+    $recentBorrows = Borrow::with(['book', 'user'])
+        ->where('status', 'borrowed')
+        ->orderBy('borrow_date', 'desc')
+        ->take(5)
+        ->get();
+
+    return view('home.home', compact(
+        'borrowedCount', 
+        'totalBooks', 
+        'availableBooks', // Pastikan semua variabel di sini sudah didefinisikan
+        'totalUsers',
+        'recentBorrows',
+        'books', 
+        'search' 
+    ));
+}
+
+public function search(Request $request) 
+{
+    // Ambil query pencarian
+    $search = $request->input('search');
+
+    if (!$search) {
+        // Jika tidak ada query, redirect kembali ke home atau tampilkan view kosong
+        return redirect()->route('home');
     }
 
-    public function search(Request $request) 
-    {
-        $search = $request->input('search');
+    // Logika Pencarian Penuh (dipindahkan dari home())
+    $books = Book::where(function($query) use ($search) {
+        $query->where('title', 'like', "%{$search}%")
+              ->orWhere('author', 'like', "%{$search}%")
+              ->orWhere('category', 'like', "%{$search}%");
+    })
+    ->get()
+    ->filter(function($book) {
+        // Filter manual untuk buku yang available
+        return ($book->quantity - $book->borrowed - $book->booked) > 0;
+    });
 
-        if (!$search) {
-            return redirect()->route('home');
-        }
-
-        $books = Book::where(function($query) use ($search) {
-            $query->where('title', 'like', "%{$search}%")
-                  ->orWhere('author', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%");
-        })
-        ->get()
-        ->filter(function($book) {
-            return ($book->quantity - $book->borrowed - $book->booked) > 0;
-        });
-
-        return view('home.search', [
-            'books' => $books,
-            'query' => $search,
-        ]);
-    }
+    // Tampilkan view hasil pencarian
+    // View ini akan menggunakan layout app.blade.php dan menampilkan hasil
+    return view('home.search', [ // Asumsikan nama view Anda adalah search.blade.php
+        'books' => $books,
+        'query' => $search,
+    ]);
+}
 
     /**
      * Method untuk mendapatkan data buku yang dipinjam (untuk count di dashboard)
@@ -851,39 +714,24 @@ public function returnBook($id)
         return view('home.borrowed-books', compact('borrowHistory'));
     }
 
-/**
- * Denda user dengan perhitungan real-time
- */
+    /**
+     * Denda user.
+     */
 public function userPenalties()
 {
     $user = Auth::user();
     
-    // PROSES OTOMATIS: Cek dan buat penalty untuk peminjaman yang overdue
-    $this->checkAndCreateRealTimePenalties($user->id);
-    
+    // Ambil data denda seperti biasa. 
+    // Aksesor `is_overdue` dan `overdue_days` akan otomatis dihitung
+    // saat objek $penalty diakses di view.
     $penalties = Penalty::with(['borrow.book'])
         ->where('user_id', $user->id)
         ->orderBy('created_at', 'desc')
         ->get();
 
-    // PERBAIKAN: Hitung total unpaid dengan benar
-    $totalUnpaid = 0;
-    
-    foreach ($penalties as $penalty) {
-        if ($penalty->status === 'unpaid') {
-            // Untuk penalty late_return, gunakan amount dari database (sudah di-update oleh sistem)
-            if ($penalty->reason === 'late_return') {
-                $totalUnpaid += $penalty->amount;
-            } else {
-                $totalUnpaid += $penalty->amount;
-            }
-        }
-    }
-
-    // Alternatif lebih sederhana:
-    // $totalUnpaid = Penalty::where('user_id', $user->id)
-    //     ->where('status', 'unpaid')
-    //     ->sum('amount');
+    $totalUnpaid = Penalty::where('user_id', $user->id)
+        ->where('status', 'unpaid')
+        ->sum('amount');
 
     $totalPaid = Penalty::where('user_id', $user->id)
         ->where('status', 'paid')
@@ -891,8 +739,9 @@ public function userPenalties()
 
     return view('home.penalty', compact('penalties', 'totalUnpaid', 'totalPaid'));
 }
+
 /**
- * Cek dan buat penalty real-time untuk user dengan perhitungan MUTLAK
+ * Cek dan buat penalty real-time untuk user dengan update amount yang benar
  */
 private function checkAndCreateRealTimePenalties($userId)
 {
@@ -903,93 +752,60 @@ private function checkAndCreateRealTimePenalties($userId)
             ->where('return_date', '<', now())
             ->get();
 
+        $createdCount = 0;
+        $updatedCount = 0;
+
         foreach ($overdueBorrows as $borrow) {
-            // PERBAIKAN: Hitung hari keterlambatan dengan cara MUTLAK
-            $returnDate = Carbon::parse($borrow->return_date)->startOfDay();
-            $today = now()->startOfDay();
-            
-            if ($today->greaterThan($returnDate)) {
-                // PERBAIKAN: Gunakan perhitungan hari absolut
-                $lateDays = $this->calculateAbsoluteLateDays($returnDate, $today);
-                // PERBAIKAN: Gunakan 2.000 per hari
-                $fineAmount = $lateDays * 2000;
+            $lateDays = now()->diffInDays(Carbon::parse($borrow->return_date));
+            $fineAmount = $lateDays * 2000;
 
-                // Cek apakah sudah ada penalty untuk borrow ini
-                $existingPenalty = Penalty::where('borrow_id', $borrow->id)
-                                         ->where('reason', 'late_return')
-                                         ->first();
+            // Cek apakah sudah ada penalty untuk borrow ini
+            $existingPenalty = Penalty::where('borrow_id', $borrow->id)
+                                     ->where('reason', 'late_return')
+                                     ->first();
 
-                if (!$existingPenalty) {
-                    // Buat penalty baru
-                    Penalty::create([
-                        'user_id' => $borrow->user_id,
-                        'borrow_id' => $borrow->id,
-                        'amount' => $fineAmount,
-                        'reason' => 'late_return',
-                        'status' => 'unpaid',
-                        'due_date' => now()->addDays(1),
-                        'notes' => 'Denda keterlambatan pengembalian buku. Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.'
-                    ]);
-                    
-                    // Update status borrow jadi overdue
-                    if ($borrow->status === 'borrowed') {
-                        $borrow->status = 'overdue';
-                        $borrow->save();
-                    }
-                    
-                    Log::info("Created real-time penalty for user {$userId}, borrow {$borrow->id}, late days: {$lateDays}");
-                } else {
-                    // Update penalty yang sudah ada
-                    if ($existingPenalty->amount != $fineAmount) {
-                        $existingPenalty->amount = $fineAmount;
-                        $existingPenalty->notes = 'Denda keterlambatan pengembalian buku. Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.';
-                        $existingPenalty->save();
-                    }
+            if (!$existingPenalty) {
+                // Buat penalty baru
+                Penalty::create([
+                    'user_id' => $borrow->user_id,
+                    'borrow_id' => $borrow->id,
+                    'amount' => $fineAmount,
+                    'reason' => 'late_return',
+                    'status' => 'unpaid',
+                    'due_date' => now()->addDays(1), // Batas bayar "Segera"
+                    'notes' => 'Denda keterlambatan pengembalian buku. Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.'
+                ]);
+                $createdCount++;
+                
+                // Update status borrow jadi overdue
+                if ($borrow->status === 'borrowed') {
+                    $borrow->status = 'overdue';
+                    $borrow->save();
+                }
+                
+                Log::info("Created penalty for user {$userId}, borrow {$borrow->id}, amount: Rp {$fineAmount}");
+            } else {
+                // PERBAIKAN: Selalu update amount untuk denda yang masih unpaid
+                if ($existingPenalty->status === 'unpaid' && $existingPenalty->amount != $fineAmount) {
+                    $existingPenalty->amount = $fineAmount;
+                    $existingPenalty->notes = 'Denda keterlambatan pengembalian buku. Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.';
+                    $existingPenalty->save();
+                    $updatedCount++;
+                    Log::info("Updated penalty for borrow {$borrow->id}, new amount: Rp {$fineAmount}");
                 }
             }
         }
         
-        return $overdueBorrows->count();
+        Log::info("Real-time penalties processed for user {$userId}: {$createdCount} created, {$updatedCount} updated");
+        return ['created' => $createdCount, 'updated' => $updatedCount];
         
     } catch (\Exception $e) {
         Log::error("Error creating real-time penalties for user {$userId}: " . $e->getMessage());
-        return 0;
+        return ['created' => 0, 'updated' => 0];
     }
 }
-    /**
-     * Update denda keterlambatan untuk user tertentu
-     */
-private function updateUserLatePenalties($userId)
-{
-    try {
-        $latePenalties = Penalty::with(['borrow'])
-                               ->where('user_id', $userId)
-                               ->where('reason', 'late_return')
-                               ->where('status', 'unpaid')
-                               ->get();
 
-        foreach ($latePenalties as $penalty) {
-            $borrow = $penalty->borrow;
-            if (!$borrow) continue;
 
-            $dueDate = Carbon::parse($borrow->return_date);
-            $actualReturnDate = $borrow->actual_return_date 
-                ? Carbon::parse($borrow->actual_return_date) 
-                : now();
-
-            $lateDays = max(0, $actualReturnDate->diffInDays($dueDate));
-            $newAmount = $lateDays * 2000;
-
-            if ($newAmount != $penalty->amount) {
-                $penalty->amount = $newAmount;
-                $penalty->save();
-            }
-        }
-
-    } catch (\Exception $e) {
-        Log::error("Error updating user {$userId} late penalties: " . $e->getMessage());
-    }
-}
     /**
      * Mendapatkan buku populer berdasarkan jumlah peminjaman.
      */
@@ -1070,40 +886,66 @@ private function updateUserLatePenalties($userId)
         return response()->stream($callback, 200, $headers);
     }
 
-    // /**
-    //  * Generate laporan peminjaman.
-    //  */
-    // public function generateReport(Request $request)
-    // {
-    //     $this->checkAdminAccess();
+    /**
+     * Generate laporan peminjaman.
+     */
+    public function generateReport(Request $request)
+    {
+        $this->checkAdminAccess();
         
-    //     $startDate = $request->input('start_date', now()->subMonth()->format('Y-m-d'));
-    //     $endDate = $request->input('end_date', now()->format('Y-m-d'));
+        $startDate = $request->input('start_date', now()->subMonth()->format('Y-m-d'));
+        $endDate = $request->input('end_date', now()->format('Y-m-d'));
         
-    //     $reportData = Borrow::with(['user', 'book'])
-    //                         ->whereBetween('created_at', [$startDate, $endDate])
-    //                         ->orderBy('created_at', 'desc')
-    //                         ->get();
+        $reportData = Borrow::with(['user', 'book'])
+                            ->whereBetween('created_at', [$startDate, $endDate])
+                            ->orderBy('created_at', 'desc')
+                            ->get();
         
-    //     return view('admin.reports.borrow-report', compact('reportData', 'startDate', 'endDate'));
-    // }
+        return view('admin.reports.borrow-report', compact('reportData', 'startDate', 'endDate'));
+    }
 
     /**
      * Otomatis update status overdue & buat denda.
      * Akan dijalankan oleh Laravel Scheduler.
      */
-/**
- * Otomatis update status overdue & buat denda - UNTUK SCHEDULER
- */
-public function updateOverdueStatusAndCreatePenalties()
-{
-    $result = $this->processAllUsersOverdueBorrows();
-    
-    Log::info('Scheduler: Processed overdue borrows for all users', [
-        'penalties_created' => $result['created'],
-        'penalties_updated' => $result['updated']
-    ]);
-    
-    return $result['created'] + $result['updated'];
-}
+    public function updateOverdueStatusAndCreatePenalties()
+    {
+        $overdueBorrows = Borrow::where('status', 'borrowed')
+                                ->where('return_date', '<', now())
+                                ->get();
+        
+        $createdPenaltiesCount = 0;
+
+        foreach ($overdueBorrows as $borrow) {
+            DB::beginTransaction();
+            try {
+                $borrow->status = 'overdue';
+                $borrow->save();
+
+                $existingPenalty = Penalty::where('borrow_id', $borrow->id)->first();
+                if (!$existingPenalty) {
+                    $lateDays = now()->diffInDays($borrow->return_date);
+                    $fineAmount = $lateDays * 2000;
+                    
+                    Penalty::create([
+                        'user_id' => $borrow->user_id,
+                        'borrow_id' => $borrow->id,
+                        'amount' => $fineAmount,
+                        'reason' => 'Keterlambatan pengembalian buku otomatis.',
+                        'status' => 'unpaid',
+                        'due_date' => now()->addDays(7),
+                    ]);
+                    $createdPenaltiesCount++;
+                }
+
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Error processing overdue borrow for ID ' . $borrow->id . ': ' . $e->getMessage());
+            }
+        }
+        
+        Log::info('Updated ' . $overdueBorrows->count() . ' borrows to overdue and created ' . $createdPenaltiesCount . ' penalties.');
+        return $overdueBorrows->count();
+    }
 }

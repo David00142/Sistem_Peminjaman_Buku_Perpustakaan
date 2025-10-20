@@ -39,13 +39,10 @@ Route::get('/borrowed-books', [BookController::class, 'userBorrowHistory'])->nam
 // Halaman Denda untuk user
 Route::get('/penalty', [BookController::class, 'userPenalties'])->name('penalty')->middleware('auth');
 
-// // Home Route (protected by auth middleware)
-// Route::get('/home', function () {
-//     return view('home.home');
-// })->name('home')->middleware('auth');
-
-Route::get('/home', [BookController::class, 'home'])->name('home')->middleware('auth');
-Route::get('/', [BookController::class, 'home'])->name('home')->middleware('auth');
+// Home Route (protected by auth middleware)
+Route::get('/home', function () {
+    return view('home.home');
+})->name('home')->middleware('auth');
 
 // Profile Routes
 Route::middleware('auth')->group(function () {
@@ -58,36 +55,16 @@ Route::get('/history', [HistoryController::class, 'show'])->name('history.show')
 
 // Book Routes - Public
 Route::get('books/{id}', [BookController::class, 'show'])->name('book.show');
-Route::post('books-search/{id}', [BookController::class, 'show'])->name('book.show-search');
 
 // Book Routes - Protected (Booking)
 Route::middleware('auth')->group(function () {
-    Route::post('/books/{id}/booking', [BookController::class, 'booking'])->name('book.booking');
-    Route::get('/search', [BookController::class, 'search'])->name('search'); 
+    Route::post('/books/{id}/booking', [BookController::class, 'booking'])
+    ->name('book.booking');
+    Route::get('/book-search', [BookController::class, 'searchBooks'])->name('book.search');
     Route::get('/books/category/{category}', [BookController::class, 'getBooksByCategory'])->name('book.category');
 });
 
-// Route untuk profile - pastikan menggunakan middleware auth
-Route::middleware(['auth'])->group(function () {
-    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
-    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
-});
 
-// Route untuk detail penalty (admin)
-Route::get('/admin/penalties/{id}/detail', [BookController::class, 'getPenaltyDetail'])->name('admin.penalties.detail');
-// Pastikan Anda sudah memiliki route untuk login dan register
-// Contoh: Auth::routes(); jika Anda menggunakan laravel/ui
-
-// require __DIR__.'/auth.php';
-// // Book Routes - Protected (Booking)
-// Route::middleware('auth')->group(function () {
-//     Route::post('/books/{id}/booking', [BookController::class, 'booking'])
-//         ->name('books.borrow'); // GANTI 'book.booking' MENJADI 'books.borrow'
-    
-//     Route::get('/book-search', [BookController::class, 'searchBooks'])->name('book.search');
-//     Route::get('/books/category/{category}', [BookController::class, 'getBooksByCategory'])->name('book.category');
-// });
 
 // ===================
 // ADMIN ROUTES
@@ -150,12 +127,17 @@ Route::middleware('auth')->group(function () {
     });
 
 
-// Halaman Denda (Admin)
-Route::get('/admin/penalty', [BookController::class, 'penaltyAdmin'])->name('admin.penalty');
-
-// Rute Aksi Denda
-Route::post('/admin/penalties/complete/{id}', [BookController::class, 'completePenalty'])->name('admin.penalties.complete');
-Route::post('/admin/penalties/waive/{id}', [BookController::class, 'waivePenalty'])->name('admin.penalties.waive');
+// Halaman Denda
+Route::get('/admin/penalty', function () {
+    $user = Auth::user();
+    
+    // Blokir anggota biasa
+    if (!$user || ($user->role !== 'admin' && $user->role !== 'pustakawan')) {
+        return redirect()->route('home')->with('error', 'Anda tidak memiliki akses ke halaman admin.');
+    }
+    
+    return view('admin.books.penalty');
+})->name('admin.penalty');
 
     // Admin User Management Routes
     Route::prefix('admin')->group(function () {
@@ -196,6 +178,5 @@ Route::middleware('auth')->group(function () {
 
 // Fallback route
 Route::fallback(function () {
-    return redirect()->route('home');
+    return redirect()->route('welcome');
 });
-
