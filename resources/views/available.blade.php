@@ -4,14 +4,14 @@
 
 @section('content')
     <div class="container mx-auto px-4 py-6">
-        <h1 class="text-3xl font-semibold text-gray-800 mb-6">Available Books</h1>
+        <h1 class="text-3xl font-semibold text-gray-800 mb-6">Buku Tersedia</h1>
 
         @if($books->isEmpty())
             <div class="text-center py-12">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
-                <p class="text-gray-500 text-lg">No books available at the moment.</p>
+                <p class="text-gray-500 text-lg">Tidak ada buku yang tersedia sekarang.</p>
             </div>
         @else
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">

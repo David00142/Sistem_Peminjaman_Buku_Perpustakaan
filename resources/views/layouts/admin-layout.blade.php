@@ -78,12 +78,12 @@
                                 <p class="text-sm font-medium text-gray-800">{{ Auth::user()->name }}</p>
                                 <p class="text-xs text-gray-500">{{ Auth::user()->email }}</p>
                             </div>
-                            <a href="{{ route('profile.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">Detail Profile</a>
-                            <a href="{{ route('history.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">My History</a>
+                            <a href="{{ route('profile.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">Profile Saya</a>
+                            <a href="{{ route('history.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">History</a>
                             <a href="{{ route('logout') }}" 
                                onclick="event.preventDefault(); document.getElementById('logout-form').submit();" 
                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">
-                                Logout
+                                Keluar
                             </a>
                             <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
                                 @csrf
@@ -102,19 +102,19 @@
         <div class="container mx-auto px-4">
             <div class="flex justify-center space-x-12 py-3">
                 <a href="{{ route('admin.index') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.index') ? 'active' : '' }}">
-                    <span>Data User</span>
+                    <span>Data Pengguna</span>
                 </a>
                 <a href="{{ route('admin.books.create') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.books.create') ? 'active' : '' }}">
-                    <span>Add Book</span>
+                    <span>Tambah Buku</span>
                 </a>
                 <a href="{{ route('admin.books.booked') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.books.booked') ? 'active' : '' }}">
-                    <span>Booked</span>
+                    <span>Dipesan</span>
                 </a>
                 <a href="{{ route('admin.books.borrowed') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.books.borrowed') ? 'active' : '' }}">
-                    <span>Borrowed</span>
+                    <span>Dipinjam</span>
                 </a>
                 <a href="{{ route('admin.penalty') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.penalty') ? 'active' : '' }}">
-                    <span>Penalty</span>
+                    <span>Denda</span>
                 </a>
             </div>
         </div>

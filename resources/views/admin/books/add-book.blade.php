@@ -88,7 +88,27 @@
 
                 <div>
                     <label for="image" class="block text-sm font-medium text-gray-700">Gambar Buku</label>
-                    <input type="file" name="image" id="image" class="w-full px-3 py-2 border border-gray-300 rounded-md" accept="image/*" onchange="previewImage(this)">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-4">
+                            <label for="image" 
+                                class="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent 
+                                        text-sm font-semibold rounded-full shadow-sm text-blue-700 bg-blue-50 
+                                        hover:bg-blue-100 transition duration-150 ease-in-out">
+                                Pilih foto profile anda
+                            </label>
+                            
+                            <span id="file-name" class="text-sm text-gray-600 truncate max-w-xs">
+                                Tidak ada file dipilih
+                            </span>
+                        </div>
+                        
+                        <input type="file" name="image" id="image" 
+                            class="sr-only" 
+                            accept="image/*" 
+                            onchange="previewFile(this)">
+                        
+                        <p class="mt-1 text-xs text-gray-500">Format: JPG, JPEG, PNG. Maksimal: 2MB</p>
+                    </div>
                     
                     <div id="imagePreview" class="mt-2 hidden">
                         <img id="preview" class="w-32 h-40 object-cover rounded-md">

@@ -88,10 +88,23 @@
                                     @endif
                                 </span>
                                 <div class="flex-1">
-                                    <input type="file" name="profile_photo" id="profile_photo" 
-                                           class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                                    <p class="mt-1 text-xs text-gray-500">Format: JPG, JPEG, PNG. Maksimal: 2MB</p>
+                                <div class="flex items-center space-x-4">
+                                    <label for="profile_photo" 
+                                        class="cursor-pointer inline-flex items-center px-4 py-2 border border-transparent 
+                                                text-sm font-semibold rounded-full shadow-sm text-blue-700 bg-blue-50 
+                                                hover:bg-blue-100 transition duration-150 ease-in-out">
+                                        Pilih foto profile anda
+                                    </label>
+                                    
+                                    <span id="file-name" class="text-sm text-gray-600 truncate max-w-xs">
+                                        Tidak ada file dipilih
+                                    </span>
                                 </div>
+
+    
+    <input type="file" name="profile_photo" id="profile_photo" 
+           class="sr-only"> <p class="mt-1 text-xs text-gray-500">Format: JPG, JPEG, PNG. Maksimal: 2MB</p>
+</div>
                             </div>
                             @error('profile_photo')
                                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>

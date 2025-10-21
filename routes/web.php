@@ -107,7 +107,6 @@ Route::middleware('auth')->group(function () {
         return view('admin.index', compact('users'));
     })->name('admin.index');
 
-    // Route untuk BookController - Admin
     Route::prefix('admin/books')->group(function () {
         // Menampilkan form untuk tambah buku dan daftar buku
         Route::get('/create', [BookController::class, 'create'])->name('admin.books.create');

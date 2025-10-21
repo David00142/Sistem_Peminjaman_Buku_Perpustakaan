@@ -21,7 +21,7 @@
     {{-- Debug Info --}}
     @if(env('APP_DEBUG') && Auth::user()->role === 'admin')
     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded">
-        <h4 class="font-bold text-yellow-800 mb-2">Debug Information:</h4>
+        <h4 class="font-bold text-yellow-800 mb-2">Informasi Debug:</h4>
         <div class="text-sm text-yellow-700 space-y-1">
             @php
                 // Hitung manual untuk verifikasi
@@ -39,11 +39,11 @@
                     }
                 }
             @endphp
-            <p>Total This Month (Manual): Rp {{ number_format($manualTotalThisMonth, 0, ',', '.') }}</p>
-            <p>Overdue Penalties (Manual): Rp {{ number_format($manualOverdue, 0, ',', '.') }}</p>
-            <p>Users with Penalties (Manual): {{ count($manualUsers) }}</p>
-            <p>Total Penalties: {{ $penalties->total() }}</p>
-            <p>Unpaid Count: {{ $penalties->where('status', 'unpaid')->count() }}</p>
+            <p>Total Bulan ini (Manual): Rp {{ number_format($manualTotalThisMonth, 0, ',', '.') }}</p>
+            <p>Denda yang sudah lewat waktu (Manual): Rp {{ number_format($manualOverdue, 0, ',', '.') }}</p>
+            <p>Pengguna dengan Denda (Manual): {{ count($manualUsers) }}</p>
+            <p>Total Denda: {{ $penalties->total() }}</p>
+            <p>Hitungan yang belum Dibayar: {{ $penalties->where('status', 'unpaid')->count() }}</p>
             
             @foreach($penalties->take(3) as $penalty)
                 <div class="mt-2 p-2 bg-yellow-100 rounded">
@@ -123,7 +123,7 @@
             <div class="ml-3">
                 <p class="text-sm text-yellow-700">
                     <strong>Sistem Denda Otomatis:</strong> Keterlambatan pengembalian buku dikenakan denda 
-                    <strong>Rp 2.600 per hari</strong>. Sistem akan menghitung otomatis berdasarkan hari keterlambatan.
+                    <strong>Rp 2.000 per hari</strong>. Sistem akan menghitung otomatis berdasarkan hari keterlambatan.
                 </p>
             </div>
         </div>
