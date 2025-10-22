@@ -16,10 +16,11 @@
         }
         /* Style for active navigation item */
         .nav-item.active {
-            background-color: #2563EB; /* A slightly lighter blue than the background, but still distinct */
-            color: #ffffff; /* White text for active link */
-            border-radius: 0.375rem; /* Rounded corners */
-            padding: 0.5rem 1rem; /* Adjust padding */
+            background-color: #2563EB; /* Darker blue */
+            color: #dddddd;
+            border-radius: 0.375rem;
+            padding: 0.5rem 1rem;
+            font-weight: 1000;
         }
         /* Default style for navigation item */
         .nav-item {
@@ -34,6 +35,12 @@
             background-color: #3B82F6; /* Blue hover for all links */
             color: #ffffff;
             border-radius: 0.375rem;
+        }
+        /* Style for active dropdown item */
+        .dropdown-item.active-dropdown {
+            background-color: #EFF6FF; /* bg-blue-50 */
+            color: #2563EB; /* text-blue-600 */
+            font-weight: 600; /* Semibold/medium for visibility */
         }
     </style>
 </head>
@@ -50,10 +57,10 @@
 <div class="flex-1 mx-8 hidden md:block">
 <form action="{{ route('search') }}" method="GET" class="relative">
         <input type="text" 
-               name="search"
-               value="{{ request('search') }}"
-               placeholder="Cari buku, penulis, atau kategori..." 
-               class="w-full py-2 px-4 pr-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                name="search"
+                value="{{ request('search') }}"
+                placeholder="Cari buku, penulis, atau kategori..." 
+                class="w-full py-2 px-4 pr-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
         <button type="submit" class="absolute right-3 top-2 text-gray-400 hover:text-blue-600">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -98,10 +105,18 @@
                                 <p class="text-xs text-gray-500">{{ Auth::user()->email }}</p>
                             </div>
                             <a href="{{ route('profile.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">Profile Saya</a>
-                            <a href="{{ route('history.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">History</a>
+                        
+                            @php
+                                $historyActive = Request::routeIs('history.show') || Request::is('history*');
+                            @endphp
+                            <a href="{{ route('history.show') }}" class="dropdown-item block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 
+                                {{ $historyActive ? 'active-dropdown' : '' }}">
+                                History
+                            </a>
+
                             <a href="{{ route('logout') }}" 
-                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();" 
-                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                                onclick="event.preventDefault(); document.getElementById('logout-form').submit();" 
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
                                 Keluar
                             </a>
                             <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
@@ -140,13 +155,19 @@
                         </svg>
                         <span>Dipesan</span>
                     </a>
-                    <a href="{{ route('borrowed-books') }}" class="nav-item text-white font-medium
-                    {{ Request::routeIs('borrowed-books') ? 'active' : '' }}">
+                    
+
+                    @php
+                        $isHistoryActive = Request::routeIs('history.show') || Request::is('history*');
+                    @endphp
+                    <a href="{{ route('history.show') }}" class="nav-item text-white font-medium
+                    {{ $isHistoryActive ? 'active' : '' }}">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0-8H8m0 0h8m-9 8h9" />
                         </svg>
-                        <span>Dipinjam</span>
+                        <span>Riwayat Peminjaman</span>
                     </a>
+                    
                     <a href="{{ route('penalty') }}" class="nav-item text-white font-medium
                     {{ Request::routeIs('penalty') ? 'active' : '' }}">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

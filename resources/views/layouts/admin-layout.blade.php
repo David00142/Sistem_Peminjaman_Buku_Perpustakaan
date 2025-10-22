@@ -14,22 +14,38 @@
         .brand-font {
             font-family: 'Merriweather', serif;
         }
+
+        /* Default style for navigation item (Status TIDAK AKTIF) */
         .nav-item {
             position: relative;
-            padding-bottom: 2px;
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            color: #ffffff;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            font-weight: 500; /* STANDAR NON-AKTIF (Medium) */
         }
-        .nav-item::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
+        
+        /* Style for active navigation item (Status AKTIF) */
+        .nav-item.active {
+            background-color: #2563EB; /* Darker blue */
+            color: #e6e6e6 !important;
+            border-radius: 0.375rem;
+            font-weight: 700; /* TEBAL (Bold) */
+        }
+
+        /* Hover style for navigation item */
+        .nav-item:hover:not(.active) {
             background-color: #3B82F6;
-            transition: width 0.3s ease;
+            color: #ffffff;
+            border-radius: 0.375rem;
         }
-        .nav-item:hover::after, .nav-item.active::after {
-            width: 100%;
+
+        /* Style for active dropdown item */
+        .dropdown-item.active-dropdown {
+            background-color: #EFF6FF; /* bg-blue-50 */
+            color: #2563EB; /* text-blue-600 */
+            font-weight: 600; /* Semibold/medium for visibility */
         }
     </style>
 </head>
@@ -78,8 +94,17 @@
                                 <p class="text-sm font-medium text-gray-800">{{ Auth::user()->name }}</p>
                                 <p class="text-xs text-gray-500">{{ Auth::user()->email }}</p>
                             </div>
-                            <a href="{{ route('profile.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">Profile Saya</a>
-                            <a href="{{ route('history.show') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">History</a>
+                            
+                            @php
+                                $profileActive = Request::routeIs('profile.show');
+                                $historyActive = Request::routeIs('history.show') || Request::is('history*');
+                            @endphp
+                            
+                            <a href="{{ route('profile.show') }}" class="dropdown-item block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 {{ $profileActive ? 'active-dropdown' : '' }}" role="menuitem">Profile Saya</a>
+                            
+                            <!-- Perbaikan Dropdown History -->
+                            <a href="{{ route('history.show') }}" class="dropdown-item block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 {{ $historyActive ? 'active-dropdown' : '' }}" role="menuitem">History</a>
+                            
                             <a href="{{ route('logout') }}" 
                                onclick="event.preventDefault(); document.getElementById('logout-form').submit();" 
                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">
@@ -101,21 +126,62 @@
     <nav class="bg-blue-600 shadow-md">
         <div class="container mx-auto px-4">
             <div class="flex justify-center space-x-12 py-3">
-                <a href="{{ route('admin.index') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.index') ? 'active' : '' }}">
+                
+                @php
+                    // Helper yang lebih stabil untuk menentukan status aktif navigasi
+                    function isActive($name) {
+                        if (is_array($name)) {
+                            foreach ($name as $n) {
+                                if (Request::routeIs($n)) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+                        return Request::routeIs($name);
+                    }
+                @endphp
+                
+                <!-- Data Pengguna (Users) -->
+                <a href="{{ route('admin.index') }}" class="nav-item text-white flex items-center space-x-2 transition-colors duration-300 {{ isActive('admin.index') ? 'active' : '' }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20v-2c0-.656-.126-1.283-.356-1.857M21 12v3.388m0 0s-2.625-1.5-6.875-1.5M15 15.388v-3.388c0-.621-.303-1.092-.857-1.464M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2zM9 13a3 3 0 100-6 3 3 0 000 6z" />
+                    </svg>
                     <span>Data Pengguna</span>
                 </a>
-                <a href="{{ route('admin.books.create') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.books.create') ? 'active' : '' }}">
-                    <span>Tambah Buku</span>
+                
+                <!-- Manajemen Buku (Books) - Menggunakan ikon buku dari app.blade.php -->
+                <a href="{{ route('admin.books.create') }}" class="nav-item text-white flex items-center space-x-2 transition-colors duration-300 {{ isActive(['admin.books.create', 'admin.books.edit', 'admin.books.index']) ? 'active' : '' }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <span>Manajemen Buku</span>
                 </a>
-                <a href="{{ route('admin.books.booked') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.books.booked') ? 'active' : '' }}">
+                
+                <!-- Dipesan (Booked) - Menggunakan ikon bookmark dari app.blade.php -->
+                <a href="{{ route('admin.books.booked') }}" class="nav-item text-white flex items-center space-x-2 transition-colors duration-300 {{ isActive('admin.books.booked') ? 'active' : '' }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
                     <span>Dipesan</span>
                 </a>
-                <a href="{{ route('admin.books.borrowed') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.books.borrowed') ? 'active' : '' }}">
+                
+                <!-- Dipinjam (Borrowed) - Menggunakan ikon folder/file dari app.blade.php -->
+                <a href="{{ route('admin.books.borrowed') }}" class="nav-item text-white flex items-center space-x-2 transition-colors duration-300 {{ isActive('admin.books.borrowed') ? 'active' : '' }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0-8H8m0 0h8m-9 8h9" />
+                    </svg>
                     <span>Dipinjam</span>
                 </a>
-                <a href="{{ route('admin.penalty') }}" class="nav-item text-white font-medium flex items-center space-x-2 hover:text-blue-200 transition-colors duration-300 {{ Request::routeIs('admin.penalty') ? 'active' : '' }}">
+                
+                <!-- Denda (Penalty) - Menggunakan ikon alert/exclamation dari app.blade.php -->
+                <a href="{{ route('admin.penalty') }}" class="nav-item text-white flex items-center space-x-2 transition-colors duration-300 {{ isActive('admin.penalty') ? 'active' : '' }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     <span>Denda</span>
                 </a>
+                
             </div>
         </div>
     </nav>
@@ -140,6 +206,7 @@
 
     @stack('scripts')
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const profileButton = document.getElementById('profileButton');
@@ -160,6 +227,40 @@
                     isDropdownOpen = false;
                 }
             });
+            
+            // SweetAlert notifications
+            // PERBAIKAN: Gunakan fungsi e() untuk mengamankan string Blade
+             @if(session('alert_type') && session('alert_title'))
+                Swal.fire({
+                    icon: "{!! e(session('alert_type')) !!}",
+                    title: "{!! e(session('alert_title')) !!}",
+                    text: "{!! e(session('alert_message', '')) !!}",
+                    confirmButtonColor: '#3B82F6',
+                    confirmButtonText: 'OK',
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            @endif
+
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: "{!! e(session('error')) !!}",
+                    confirmButtonColor: '#EF4444',
+                    confirmButtonText: 'OK'
+                });
+            @endif
+
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: "{!! e(session('success')) !!}",
+                    confirmButtonColor: '#10B981',
+                    confirmButtonText: 'OK'
+                });
+            @endif
         });
     </script>
 </body>

@@ -14,7 +14,7 @@ class Borrow extends Model
         'user_id', 
         'book_id', 
         'booking_date',      // Tambahkan untuk fitur booking
-        'expiry_date',       // Tambahkan untuk batas waktu pengambilan
+        'expiry_date',        // Tambahkan untuk batas waktu pengambilan
         'borrow_date', 
         'return_date', 
         'actual_return_date', 
@@ -26,7 +26,7 @@ class Borrow extends Model
     ];
 
     protected $casts = [
-        'booking_date' => 'datetime',    
+        'booking_date' => 'datetime',     
         'expiry_date' => 'datetime',        
         'borrow_date' => 'date',
         'return_date' => 'date',
@@ -42,6 +42,16 @@ class Borrow extends Model
     {
         return $this->belongsTo(Book::class);
     }
+    
+    // ===================================
+    // RELASI BARU UNTUK MEMPERBAIKI ERROR
+    // ===================================
+    public function penalties()
+    {
+        // Satu Borrow memiliki banyak Penalty
+        return $this->hasMany(Penalty::class, 'borrow_id');
+    }
+    // ===================================
 
     // Hitung sisa hari untuk peminjaman
     public function getRemainingDaysAttribute()
@@ -83,14 +93,14 @@ class Borrow extends Model
     public function scopeActiveBookings($query)
     {
         return $query->where('status', 'booked')
-                    ->where('expiry_date', '>', now());
+                     ->where('expiry_date', '>', now());
     }
 
     // Scope untuk booking yang kadaluarsa
     public function scopeExpiredBookings($query)
     {
         return $query->where('status', 'booked')
-                    ->where('expiry_date', '<=', now());
+                     ->where('expiry_date', '<=', now());
     }
 
     // Scope untuk peminjaman aktif
