@@ -5,6 +5,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon; // Pastikan Carbon di-import
 
 class Borrow extends Model
 {
@@ -14,7 +15,7 @@ class Borrow extends Model
         'user_id', 
         'book_id', 
         'booking_date',      // Tambahkan untuk fitur booking
-        'expiry_date',        // Tambahkan untuk batas waktu pengambilan
+        'expiry_date',       // Tambahkan untuk batas waktu pengambilan
         'borrow_date', 
         'return_date', 
         'actual_return_date', 
@@ -53,13 +54,38 @@ class Borrow extends Model
     }
     // ===================================
 
-    // Hitung sisa hari untuk peminjaman
+    // Hitung sisa hari untuk peminjaman (PERBAIKAN PEMBULATAN 24 JAM)
     public function getRemainingDaysAttribute()
     {
-        if ($this->return_date) {
-            return now()->diffInDays($this->return_date, false);
+        if (!$this->return_date || in_array($this->status, ['returned', 'overdue'])) {
+            return null;
         }
-        return null;
+        
+        $dueDate = Carbon::parse($this->return_date);
+        $today = now();
+
+        // 1. Cek jika sudah terlewat (jika iya, anggap 0 atau null, atau biarkan getIsOverdueAttribute yang menangani)
+        if ($today->greaterThan($dueDate)) {
+            return 0; 
+        }
+
+        // 2. Konversi Batas Kembali dan Hari Ini ke awal hari (00:00:00)
+        $dueDateStart = $dueDate->copy()->startOfDay();
+        $todayStart = $today->copy()->startOfDay();
+
+        // 3. Hitung selisih hari penuh
+        $remainingDays = $todayStart->diffInDays($dueDateStart, false);
+
+        // Jika hasilnya > 0 (masih ada hari penuh tersisa), kembalikan hasilnya.
+        if ($remainingDays > 0) {
+            return $remainingDays;
+        }
+
+        if ($dueDate->isSameDay($today) && $today->lessThan($dueDate)) {
+             return 1;
+        }
+
+        return 0;
     }
 
     // Hitung sisa waktu untuk pengambilan booking

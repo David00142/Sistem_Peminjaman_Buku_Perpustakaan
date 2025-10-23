@@ -129,10 +129,6 @@
         // Jika return_date 19 Oct, dan today 22 Oct: selisihnya 3 hari penuh.
         $lateDays = $today->diffInDays($dueDate);
 
-        // Jika Anda ingin menampilkan 1 hari terlambat setelah 1 detik melewati batas:
-        // Anda bisa menggunakan $lateDays = $today->diffInDays($dueDate) + 1; 
-        // Namun, menggunakan startOfDay() sudah menghasilkan integer penuh.
-
     @endphp
     <span class="text-red-600">Terlambat {{ $lateDays }} hari</span>
     
@@ -145,8 +141,12 @@
     @endif
     
 @elseif($borrow->return_date)
-    {{-- (Kode untuk sisa hari jika belum terlambat) --}}
-    <span class="text-green-600">Sisa {{ now()->diffInDays($borrow->return_date, false) }} hari</span>
+    {{-- PERBAIKAN: Gunakan Accessor Model yang sudah dibulatkan --}}
+    @if($borrow->remaining_days !== null && $borrow->remaining_days > 0)
+        <span class="text-green-600">Sisa {{ $borrow->remaining_days }} hari</span>
+    @else
+        <span class="text-yellow-600">Batas Hari Ini!</span>
+    @endif
 @endif
                                     </td>
                                 </tr>
