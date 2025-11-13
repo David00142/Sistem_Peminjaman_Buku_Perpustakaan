@@ -17,7 +17,7 @@
         /* Style for active navigation item */
         .nav-item.active {
             background-color: #2563EB; /* Darker blue */
-            color: #dddddd;
+            color: #9fb9f1;
             border-radius: 0.375rem;
             padding: 0.5rem 1rem;
             font-weight: 1000;

@@ -29,7 +29,7 @@
         /* Style for active navigation item (Status AKTIF) */
         .nav-item.active {
             background-color: #2563EB; /* Darker blue */
-            color: #e6e6e6 !important;
+            color: #9fb9f1 !important;
             border-radius: 0.375rem;
             font-weight: 700; /* TEBAL (Bold) */
         }
@@ -100,11 +100,14 @@
                                 $historyActive = Request::routeIs('history.show') || Request::is('history*');
                             @endphp
                             
-                            <a href="{{ route('profile.show') }}" class="dropdown-item block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 {{ $profileActive ? 'active-dropdown' : '' }}" role="menuitem">Profile Saya</a>
-                            
-                            <!-- Perbaikan Dropdown History -->
-                            <a href="{{ route('history.show') }}" class="dropdown-item block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 {{ $historyActive ? 'active-dropdown' : '' }}" role="menuitem">History</a>
-                            
+                    <a href="{{ route('home') }}"
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">
+                        Beranda Anggota
+                    </a>
+                    <form id="logout-form" action="{{ route('home') }}" method="POST" class="hidden">
+                                @csrf
+                            </form>
+
                             <a href="{{ route('logout') }}" 
                                onclick="event.preventDefault(); document.getElementById('logout-form').submit();" 
                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600" role="menuitem">

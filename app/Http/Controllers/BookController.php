@@ -311,14 +311,14 @@ private function processAllUsersOverdueBorrows()
                             'reason' => 'late_return',
                             'status' => 'unpaid',
                             'due_date' => now()->addDays(1),
-                            'notes' => 'Denda keterlambatan pengembalian buku. Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.'
+                            'notes' => 'Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.'
                         ]);
                         $createdCount++;
                     } else {
                         // Update denda yang sudah ada hanya jika jumlah berubah
                         if ($existingPenalty->status === 'unpaid' && $existingPenalty->amount != $fineAmount) {
                             $existingPenalty->amount = $fineAmount;
-                            $existingPenalty->notes = 'Denda keterlambatan pengembalian buku. Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.';
+                            $existingPenalty->notes = 'Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.';
                             $existingPenalty->save();
                             $updatedCount++;
                         }
@@ -928,7 +928,7 @@ private function checkAndCreateRealTimePenalties($userId)
                         'reason' => 'late_return',
                         'status' => 'unpaid',
                         'due_date' => now()->addDays(1),
-                        'notes' => 'Denda keterlambatan pengembalian buku. Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.'
+                        'notes' => 'Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.'
                     ]);
                     
                     // Update status borrow jadi overdue
@@ -942,7 +942,7 @@ private function checkAndCreateRealTimePenalties($userId)
                     // Update penalty yang sudah ada
                     if ($existingPenalty->amount != $fineAmount) {
                         $existingPenalty->amount = $fineAmount;
-                        $existingPenalty->notes = 'Denda keterlambatan pengembalian buku. Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.';
+                        $existingPenalty->notes = 'Terlambat ' . $lateDays . ' hari. Rp 2.000/hari.';
                         $existingPenalty->save();
                     }
                 }

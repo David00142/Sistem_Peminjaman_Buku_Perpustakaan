@@ -11,6 +11,8 @@ class Penalty extends Model
 {
     use HasFactory;
 
+    // ... (property dan relasi tidak diubah)
+
     protected $fillable = [
         'user_id',
         'borrow_id',
@@ -28,79 +30,92 @@ class Penalty extends Model
         'paid_date' => 'date',
     ];
 
-    // Relasi ke user
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // Relasi ke borrow
     public function borrow()
     {
         return $this->belongsTo(Borrow::class);
     }
 
-    // Relasi ke book melalui borrow
     public function book()
     {
         return $this->hasOneThrough(Book::class, Borrow::class, 'id', 'id', 'borrow_id', 'book_id');
     }
 
-    // Hitung denda harian otomatis berdasarkan keterlambatan
+    /**
+     * ✅ PERBAIKAN: Hitung denda harian menggunakan floatDiffInDays() dan ceil() 
+     * untuk memastikan pembulatan ke atas (1 detik terlambat = 1 hari denda).
+     */
     public function calculateDailyPenalty()
     {
         $borrow = $this->borrow;
         
-        if (!$borrow || $this->status !== 'unpaid') {
-            return 0;
+        // HANYA hitung ulang jika ini denda keterlambatan dan status belum dibayar
+        if (!$borrow || $this->status !== 'unpaid' || $this->reason !== 'late_return') {
+            return $this->amount;
         }
 
-        // Gunakan return_date dari borrow sebagai patokan
-        $dueDate = $borrow->return_date;
-        $actualReturnDate = $borrow->actual_return_date;
+        // Tanggal jatuh tempo pengembalian (termasuk waktu)
+        $dueDate = Carbon::parse($borrow->return_date);
         
-        // Jika buku sudah dikembalikan, hitung berdasarkan actual_return_date
-        if ($actualReturnDate) {
-            $lateDays = Carbon::parse($actualReturnDate)->diffInDays(Carbon::parse($dueDate));
+        // Tanggal pengembalian aktual (termasuk waktu) atau waktu saat ini
+        $actualDate = $borrow->actual_return_date
+            ? Carbon::parse($borrow->actual_return_date)
+            : now();
+        
+        // Cek apakah tanggal aktual lebih lambat dari jatuh tempo
+        if ($actualDate->greaterThan($dueDate)) {
+            // Hitung selisih dalam hari pecahan (float)
+            $floatLateDays = $actualDate->floatDiffInDays($dueDate);
+            
+            // Bulatkan ke atas (ceil) untuk mendapatkan hari denda. 
+            // 0.001 hari = 1 hari; 1.001 hari = 2 hari.
+            $lateDays = (int) ceil($floatLateDays);
         } else {
-            // Jika belum dikembalikan, hitung berdasarkan hari ini
-            $lateDays = now()->diffInDays(Carbon::parse($dueDate));
+            // Jika dikembalikan tepat waktu atau lebih awal
+            $lateDays = 0;
         }
-        
-        // Hanya hitung jika terlambat
-        $lateDays = max(0, $lateDays);
         
         return $lateDays * 2000; // Rp 2.000 per hari
     }
 
-    // Update amount secara otomatis berdasarkan keterlambatan
+    // Update amount secara otomatis berdasarkan keterlambatan (Tidak diubah, hanya memanggil yang diperbaiki)
     public function updatePenaltyAmount()
     {
         if ($this->status === 'unpaid' && $this->reason === 'late_return') {
             $newAmount = $this->calculateDailyPenalty();
-            if ($newAmount != $this->amount) {
+            
+            if (number_format($newAmount, 2) != number_format($this->amount, 2)) {
                 $this->amount = $newAmount;
                 $this->save();
             }
         }
     }
 
-    // Cek apakah denda sudah jatuh tempo
+    // Cek apakah denda sudah jatuh tempo (TIDAK ADA PERUBAHAN)
     public function getIsOverdueAttribute()
     {
+        // Perbandingan ini untuk due_date pembayaran denda (bukan pengembalian buku)
         return now()->greaterThan($this->due_date) && $this->status === 'unpaid';
     }
 
-    // Hitung hari keterlambatan pembayaran
+    // Hitung hari keterlambatan pembayaran (TIDAK ADA PERUBAHAN)
     public function getOverdueDaysAttribute()
     {
         if ($this->is_overdue) {
-            return now()->diffInDays($this->due_date);
+            // Tetap menggunakan diffInDays() karena ini adalah hari kalender pembayaran
+            return now()->diffInDays($this->due_date); 
         }
         return 0;
     }
 
-    // Hitung hari keterlambatan pengembalian
+    /**
+     * ✅ PERBAIKAN: Hitung hari keterlambatan pengembalian (untuk tampilan) 
+     * Menggunakan logika yang sama dengan calculateDailyPenalty untuk konsistensi.
+     */
     public function getLateDaysAttribute()
     {
         $borrow = $this->borrow;
@@ -110,35 +125,37 @@ class Penalty extends Model
         $actualReturnDate = $borrow->actual_return_date 
             ? Carbon::parse($borrow->actual_return_date) 
             : now();
+            
+        if ($actualReturnDate->greaterThan($dueDate)) {
+            $floatLateDays = $actualReturnDate->floatDiffInDays($dueDate);
+            // Pembulatan ke atas untuk keterlambatan
+            return (int) ceil($floatLateDays);
+        }
 
-        return max(0, $actualReturnDate->diffInDays($dueDate));
+        return 0;
     }
-
-    // Scope untuk denda yang belum dibayar
+    
+    // ... (Sisa Scope, tidak perlu diubah)
     public function scopeUnpaid($query)
     {
         return $query->where('status', 'unpaid');
     }
 
-    // Scope untuk denda yang sudah dibayar
     public function scopePaid($query)
     {
         return $query->where('status', 'paid');
     }
 
-    // Scope untuk denda yang dihapuskan
     public function scopeWaived($query)
     {
         return $query->where('status', 'waived');
     }
 
-    // Scope untuk denda user tertentu
     public function scopeForUser($query, $userId)
     {
         return $query->where('user_id', $userId);
     }
 
-    // Scope untuk denda keterlambatan
     public function scopeLateReturns($query)
     {
         return $query->where('reason', 'late_return');

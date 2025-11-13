@@ -126,12 +126,12 @@
                                     @endif
                                 </td>
                                 <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-900">
-                                    {{ $penalty->due_date->format('d M Y') }}
-                                    @if($penalty->is_overdue)
-                                        <br>
-                                        <span class="text-red-600 text-xs">
-                                            (+{{ $penalty->overdue_days }} hari)
-                                        </span>
+                                        {{ $penalty->due_date->format('d M Y') }}
+                                        @if($penalty->is_overdue)
+                                            <br>
+                                            <span class="text-red-600 text-xs">
+                                                Segera Di Bayar
+                                            </span>
                                     @endif
                                 </td>
                                 <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-900">

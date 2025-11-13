@@ -1,82 +1,92 @@
-Aplikasi BoBook: Sistem Manajemen Perpustakaan Digital 📚
-Aplikasi BoBook adalah solusi manajemen perpustakaan digital yang dirancang untuk menyederhanakan proses peminjaman dan booking buku bagi pustakawan dan anggota. Dengan berbagai fitur canggih, aplikasi ini memastikan ketersediaan buku dan memberikan pengalaman yang mudah diakses oleh semua pengguna.
 
-Fitur Utama
-Sistem Booking Buku: Anggota dapat melakukan booking buku secara online, yang kemudian akan diverifikasi oleh pustakawan.
+# BOBOOK
+Sistem Manajemen Perpustakaan Digital 📚 Aplikasi BoBook adalah solusi manajemen perpustakaan digital yang dirancang untuk menyederhanakan proses peminjaman dan booking buku bagi pustakawan dan anggota. Dengan berbagai fitur canggih, aplikasi ini memastikan ketersediaan buku dan memberikan pengalaman yang mudah diakses oleh semua pengguna.
 
-Notifikasi & Pembatalan Otomatis: Anggota diberi waktu 2 hari untuk mengambil buku yang di-booking. Jika tidak diambil, sistem akan secara otomatis membatalkan booking dan memperbarui stok buku.
 
-Dasbor Anggota: Menyediakan tampilan yang jelas mengenai ketersediaan buku, status booking, dan buku yang sedang dipinjam.
+## Fitur
 
-Manajemen Denda: Sistem secara otomatis menghitung denda sebesar Rp2.000 per hari untuk buku yang terlambat dikembalikan.
+- Sistem Booking Buku
 
-Validasi Pengguna: Pustakawan dapat memvalidasi data anggota melalui email untuk memastikan keaslian.
+- Notifikasi & Pembatalan Otomatis (2 hari waktu pengambilan)
 
-Instalasi & Penggunaan
-Untuk menginstal dan menjalankan aplikasi ini secara lokal, ikuti langkah-langkah berikut:
+- Dasbor Anggota
 
-Langkah Instalasi
-Kloning Repositori:
+- Manajemen Denda (Rp2.000 per hari)
 
-Bash
+- Validasi Pengguna
 
-git clone <URL_REPOSITORY>
-Masuk ke Direktori Proyek:
-
-Bash
-
-cd <nama-proyek>
-Instal Dependensi:
-
-Bash
-
-composer install
+## Instalasi
+Copy file repostory yang ingin di jalankan
+```
+git clone https://github.com/David00142/Sistem_Peminjaman_Buku_Perpustakaan
+```
+Lakukan konfigurasi awal
+```
+composter install
+```
+```
 npm install
-Salin File Konfigurasi:
-
-Bash
-
+```
+```
+npm run dev
+``` 
+Copy file .env dan .env.example
+```
 cp .env.example .env
-Buat Application Key:
-
-Bash
-
+```
+Untuk membuat Application Key 
+```
 php artisan key:generate
-Konfigurasi dan Migrasi Basis Data:
-
-Atur kredensial basis data Anda (DB_DATABASE, DB_USERNAME, DB_PASSWORD) pada file .env.
-
-Jalankan migrasi basis data:
-
-Bash
-
+```
+Di .env ubah DB_DATABASE 
+ ```
+DB_DATABASE=sistem_peminjaman_buku_perpustakaan
+```
+Jalankan Migrasi data 
+```
 php artisan migrate
-Jalankan Server:
-
-Bash
-
+```
+Jalankan Server 
+```
 php artisan serve
-Halaman Penggunaan
-Halaman Anggota: Menampilkan opsi Login/Register, serta dasbor untuk melihat status buku (Available, Booked, Borrowed), riwayat peminjaman, dan denda (Penalty).
+``` 
+## Arsitektur 
 
-Halaman Pustakawan (Admin): Menyediakan kontrol penuh atas sistem, termasuk manajemen data pengguna, penambahan buku baru, **verifikasi booking **, dan pemantauan denda yang harus dibayar.
-
-Arsitektur & Kontribusi
-Arsitektur
 Aplikasi ini dibangun menggunakan framework Laravel dengan arsitektur Model-View-Controller (MVC).
 
-Model: Mengelola interaksi dengan basis data (Book, User, Borrowing).
+**Model:** Mengelola interaksi dengan basis data ```(Book, User, Borrowing)```
 
-View: Bertanggung jawab atas tampilan antarmuka pengguna, baik untuk anggota maupun pustakawan.
+**View:** Bertanggung jawab atas tampilan antarmuka pengguna, baik untuk anggota maupun pustakawan.
 
-Controller: Menghubungkan Model dan View dengan memproses permintaan pengguna dan menjalankan logika aplikasi.
+**Controller:** Menghubungkan Model dan View dengan memproses permintaan pengguna dan menjalankan logika aplikasi.
 
-Kontribusi Tim
-Proyek ini merupakan hasil kolaborasi tim front-end dan back-end yang berdedikasi:
+## Kontribusi
+Kami saip menyambut setiap bentuk kontribusi dari komunitas! Aplikasi BoBook dirancang untuk memberikan solusi manajemen perpustakaan yang efisien, dan masukan, laporan bug, atau peningkatan fitur dari Anda akan sangat berharga.
 
-David: Mengimplementasikan logika untuk halaman Home, Register, Login, Welcome, dan Available Books.
+**Mengapa Berkontribusi?**
 
-Vincent: Mengimplementasikan logika untuk manajemen Book, Penalty, dan Borrowed.
+    1. Peningkatan Kualitas: Bantu kami mengidentifikasi dan memperbaiki bug atau celah keamanan untuk memastikan aplikasi berjalan mulus.
+    2. Pengembangan Fitur: Sumbangkan ide atau implementasikan fitur baru yang dapat memperkaya fungsionalitas BoBook.
+    3. Belajar Bersama: Ini adalah proyek Laravel MVC yang terbuka, menjadikannya tempat yang tepat untuk belajar dan berbagi pengetahuan coding.
 
-Lisensi
-Proyek ini dilisensikan di bawah MIT License, sebuah lisensi permisif yang memungkinkan siapa pun untuk menggunakan, memodifikasi, dan mendistribusikan kode tanpa batasan yang ketat, selama lisensi dan hak cipta asli disertakan. 📝
+**Cara Menggunakan dan Menguji**
+
+    1. Sebelum berkontribusi kode, kami mendorong Anda untuk menguji aplikasi secara lokal:
+    2. Ikuti langkah-langkah Instalasi di atas untuk menjalankan BoBook di mesin lokal Anda.
+    3. Uji skenario utama (Booking, Peminjaman, Denda) baik sebagai Anggota maupun Pustakawan.
+    4. Laporkan setiap masalah atau bug yang Anda temukan melalui bagian Pelaporan Isu di bawah.
+**Pelaporan Permasalahan Bug**
+
+Jika Anda menemukan bug, memiliki ide fitur baru, atau menemui kesulitan dalam instalasi, mohon laporkan melalui tab Issues di repositori GitHub ini.
+
+    Saat melaporkan bug, sertakan detail berikut:
+    - Langkah-langkah untuk mereproduksi masalah tersebut.
+    - Perilaku yang Diharapkan vs. Perilaku Aktual.
+    - Versi PHP/Laravel yang Anda gunakan.
+
+Terima kasih atas minat dan dukungan Anda terhadap proyek BoBook! Mari kita kembangkan aplikasi ini bersama-sama!
+
+## License
+
+[MIT](https://github.com/David00142/Sistem_Peminjaman_Buku_Perpustakaan/blob/main/LICENSE)
+
